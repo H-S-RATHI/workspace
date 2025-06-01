@@ -1,0 +1,13 @@
+
+> social-marketplace-backend@1.0.0 start
+> node src/server.js
+
+[2025-06-01T08:42:09.408Z] INFO: 🚀 Server running on port 12000 in development mode
+[2025-06-01T08:42:09.409Z] INFO: 📡 Socket.IO server initialized
+[2025-06-01T08:42:09.409Z] INFO: 🔗 API available at http://localhost:12000/api/v1
+[0mGET /health [32m200[0m 1.944 ms - 102[0m
+[0mGET /health [32m200[0m 0.471 ms - 105[0m
+[0mGET / [33m404[0m 0.765 ms - 38[0m
+[0mGET / [33m404[0m 0.551 ms - 38[0m
+[0mGET / [33m404[0m 0.298 ms - 38[0m
+[0mGET / [33m404[0m 0.324 ms - 38[0m
