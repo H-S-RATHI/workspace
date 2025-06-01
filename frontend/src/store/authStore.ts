@@ -1,7 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import toast from 'react-hot-toast'
-
+import { toast } from 'react-hot-toast'
 import { authAPI } from '../services/api'
 import type { User, LoginCredentials, SignupData } from '../types/auth'
 
@@ -21,20 +20,23 @@ interface AuthActions {
   setUser: (user: User) => void
   checkAuth: () => Promise<void>
   refreshAccessToken: () => Promise<boolean>
+  handleLogout: () => void
 }
 
+// Define the store type
 type AuthStore = AuthState & AuthActions
 
+// Create the store with proper typing
+// Create the store with proper typing
 export const useAuthStore = create<AuthStore>()(
   persist(
     (set, get) => ({
-      // Initial state
+      // State
       user: null,
       accessToken: null,
       refreshToken: null,
       isLoading: false,
       isAuthenticated: false,
-
       // Actions
       login: async (credentials: LoginCredentials) => {
         try {
@@ -141,7 +143,7 @@ export const useAuthStore = create<AuthStore>()(
             // Token might be expired, try to refresh
             const refreshed = await get().refreshAccessToken()
             if (!refreshed) {
-              get().logout()
+              get().handleLogout()
             }
           }
         } catch (error) {
@@ -149,7 +151,7 @@ export const useAuthStore = create<AuthStore>()(
           // Try to refresh token
           const refreshed = await get().refreshAccessToken()
           if (!refreshed) {
-            get().logout()
+            get().handleLogout()
           }
         } finally {
           set({ isLoading: false })
@@ -170,6 +172,7 @@ export const useAuthStore = create<AuthStore>()(
             set({
               accessToken: response.tokens.accessToken,
               refreshToken: response.tokens.refreshToken,
+              isAuthenticated: true,
             })
             return true
           }
@@ -180,13 +183,26 @@ export const useAuthStore = create<AuthStore>()(
           return false
         }
       },
+      
+      // Helper function to handle logout logic
+      handleLogout: () => {
+        set({
+          user: null,
+          accessToken: null,
+          refreshToken: null,
+          isAuthenticated: false,
+        })
+        authAPI.logout().catch(console.error)
+      },
     }),
     {
       name: 'auth-storage',
+      // Only persist these fields
       partialize: (state) => ({
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,
         user: state.user,
+        isAuthenticated: !!state.accessToken && !!state.user,
       }),
     }
   )
