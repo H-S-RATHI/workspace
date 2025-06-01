@@ -1,3 +1,14 @@
 [2025-06-01T08:42:09.408Z] INFO: 🚀 Server running on port 12000 in development mode
 [2025-06-01T08:42:09.409Z] INFO: 📡 Socket.IO server initialized
 [2025-06-01T08:42:09.409Z] INFO: 🔗 API available at http://localhost:12000/api/v1
+[2025-06-01T09:31:05.955Z] INFO: 🚀 Server running on port 12000 in development mode
+[2025-06-01T09:31:05.958Z] INFO: 📡 Socket.IO server initialized
+[2025-06-01T09:31:05.959Z] INFO: 🔗 API available at http://localhost:12000/api/v1
+[2025-06-01T09:34:34.878Z] INFO: SIGINT received, shutting down gracefully
+[2025-06-01T09:34:38.506Z] INFO: 🚀 Server running on port 12000 in development mode
+[2025-06-01T09:34:38.508Z] INFO: 📡 Socket.IO server initialized
+[2025-06-01T09:34:38.510Z] INFO: 🔗 API available at http://localhost:12000/api/v1
+[2025-06-01T09:35:29.498Z] INFO: SIGINT received, shutting down gracefully
+[2025-06-01T09:36:03.395Z] INFO: 🚀 Server running on port 12000 in development mode
+[2025-06-01T09:36:03.398Z] INFO: 📡 Socket.IO server initialized
+[2025-06-01T09:36:03.399Z] INFO: 🔗 API available at http://localhost:12000/api/v1

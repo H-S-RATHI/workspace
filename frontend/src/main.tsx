@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from 'react-query'
 import { Toaster } from 'react-hot-toast'
 
 import App from './App'
-import './index.css'
+import './globals.css'
 
 // Create a client
 const queryClient = new QueryClient({
