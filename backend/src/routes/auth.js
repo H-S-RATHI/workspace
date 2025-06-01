@@ -492,12 +492,39 @@ router.post('/verify-2fa-setup', [
 });
 
 // Logout
-router.post('/logout', authenticateToken, async (req, res) => {
+router.post('/logout', async (req, res) => {
   try {
-    // Remove refresh token
-    await cache.del(`refresh_token:${req.user.userId}`);
+    // Get the token from the Authorization header
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
 
-    logger.info(`User ${req.user.username} logged out`);
+    if (token) {
+      try {
+        // Try to verify the token
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        
+        // If token is valid, clear the refresh token
+        if (decoded && decoded.userId) {
+          await cache.del(`refresh_token:${decoded.userId}`);
+          logger.info(`User ${decoded.userId} logged out`);
+        }
+      } catch (error) {
+        // If token is invalid or expired, we still want to proceed with logout
+        // but we'll log it for debugging purposes
+        if (error.name === 'TokenExpiredError' || error.name === 'JsonWebTokenError') {
+          logger.debug(`Logout with invalid/expired token: ${error.message}`);
+        } else {
+          logger.error('Error during logout token verification:', error);
+        }
+      }
+    }
+
+    // Clear any client-side tokens by setting expired cookies
+    res.cookie('accessToken', '', { expires: new Date(0), httpOnly: true, secure: process.env.NODE_ENV === 'production' });
+    res.cookie('refreshToken', '', { expires: new Date(0), httpOnly: true, secure: process.env.NODE_ENV === 'production' });
+
+    // Clear Authorization header
+    res.setHeader('Clear-Site-Data', '"cookies", "storage"');
 
     res.json({
       success: true,
@@ -506,9 +533,13 @@ router.post('/logout', authenticateToken, async (req, res) => {
 
   } catch (error) {
     logger.error('Logout error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to logout',
+    // Even if there's an error, we still want to clear the tokens
+    res.cookie('accessToken', '', { expires: new Date(0), httpOnly: true, secure: process.env.NODE_ENV === 'production' });
+    res.cookie('refreshToken', '', { expires: new Date(0), httpOnly: true, secure: process.env.NODE_ENV === 'production' });
+    
+    res.json({
+      success: true,
+      message: 'Logged out successfully',
     });
   }
 });

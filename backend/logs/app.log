@@ -146,3 +146,12 @@
 [2025-06-01T13:49:08.760Z] INFO: 🚀 Server running on port 12000 in development mode
 [2025-06-01T13:49:08.763Z] INFO: 📡 Socket.IO server initialized
 [2025-06-01T13:49:08.766Z] INFO: 🔗 API available at http://localhost:12000/api/v1
+[2025-06-01T13:51:59.409Z] INFO: 🚀 Server running on port 12000 in development mode
+[2025-06-01T13:51:59.412Z] INFO: 📡 Socket.IO server initialized
+[2025-06-01T13:51:59.415Z] INFO: 🔗 API available at http://localhost:12000/api/v1
+[2025-06-01T13:52:34.693Z] INFO: 📱 SMS OTP would be sent to +917454029951: 676040
+[2025-06-01T13:52:34.694Z] INFO: OTP sent to +917454029951 {"identifier":"+917454029951","type":"phone"}
+[2025-06-01T13:52:38.776Z] INFO: User logged in {"userId":"ab868a3f-103f-4f82-980c-8d73c1361ea4","username":"golu_singh"}
+[2025-06-01T13:53:09.428Z] INFO: 📱 SMS OTP would be sent to +917454029951: 797311
+[2025-06-01T13:53:09.430Z] INFO: OTP sent to +917454029951 {"identifier":"+917454029951","type":"phone"}
+[2025-06-01T13:53:13.149Z] INFO: User logged in {"userId":"ab868a3f-103f-4f82-980c-8d73c1361ea4","username":"golu_singh"}
