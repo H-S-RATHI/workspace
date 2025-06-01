@@ -9,50 +9,120 @@ const userSockets = new Map(); // userId -> Set of socket IDs
 // Socket authentication middleware
 const authenticateSocket = async (socket, next) => {
   try {
-    const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.split(' ')[1];
+    logger.debug('Authenticating socket connection', {
+      socketId: socket.id,
+      auth: socket.handshake.auth,
+      headers: socket.handshake.headers
+    });
+
+    const token = socket.handshake.auth.token || 
+                 (socket.handshake.headers.authorization && 
+                  socket.handshake.headers.authorization.split(' ')[1]);
     
     if (!token) {
+      logger.warn('No authentication token provided', { socketId: socket.id });
       return next(new Error('Authentication token required'));
     }
 
+    logger.debug('Verifying JWT token', { socketId: socket.id });
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
+    logger.debug('Fetching user from database', { userId: decoded.userId });
     const user = await db('users')
       .where({ userId: decoded.userId, isDeleted: false })
-      .first();
+      .first()
+      .timeout(5000, { cancel: true });
 
     if (!user) {
+      logger.warn('User not found in database', { userId: decoded.userId });
       return next(new Error('User not found'));
     }
 
+    // Attach user info to socket for later use
     socket.userId = user.userId;
     socket.username = user.username;
+    
+    logger.debug('Socket authentication successful', {
+      socketId: socket.id,
+      userId: user.userId,
+      username: user.username
+    });
+    
     next();
   } catch (error) {
-    logger.error('Socket authentication error:', error);
+    logger.error('Socket authentication error', {
+      error: error.message,
+      stack: error.stack,
+      socketId: socket.id
+    });
+    
+    // Send more specific error messages based on the error type
+    if (error.name === 'TokenExpiredError') {
+      return next(new Error('Token expired'));
+    } else if (error.name === 'JsonWebTokenError') {
+      return next(new Error('Invalid token'));
+    } else if (error.name === 'TimeoutError') {
+      return next(new Error('Database timeout'));
+    }
+    
     next(new Error('Authentication failed'));
   }
 };
 
 // Initialize Socket.IO handlers
 const initializeSocket = (io) => {
-  // Authentication middleware
-  io.use(authenticateSocket);
+  // Handle default namespace
+  const defaultNamespace = io.of('/');
+  
+  // Log namespace initialization
+  logger.info('Initializing Socket.IO default namespace');
+  
+  // Authentication middleware for default namespace
+  defaultNamespace.use((socket, next) => {
+    logger.debug(`Authenticating socket connection: ${socket.id}`);
+    authenticateSocket(socket, next);
+  });
 
-  io.on('connection', (socket) => {
-    logger.info(`User ${socket.username} connected with socket ${socket.id}`);
+  // Handle connection on default namespace
+  defaultNamespace.on('connection', (socket) => {
+    logger.debug(`New socket connection: ${socket.id}`, {
+      userId: socket.userId,
+      handshake: {
+        headers: socket.handshake.headers,
+        auth: socket.handshake.auth,
+        query: socket.handshake.query
+      }
+    });
+    
+    if (!socket.userId) {
+      const error = new Error('Unauthenticated connection attempt');
+      logger.warn(`Disconnecting unauthenticated socket: ${socket.id}`, { error: error.message });
+      socket.emit('error', { message: 'Authentication required' });
+      socket.disconnect(true);
+      return;
+    }
+    
+    logger.info(`User ${socket.userId} (${socket.username}) connected with socket ${socket.id}`);
     
     // Store connection
+    const userConnections = userSockets.get(socket.userId) || new Set();
+    userConnections.add(socket.id);
+    userSockets.set(socket.userId, userConnections);
+    
     activeConnections.set(socket.id, {
       userId: socket.userId,
       username: socket.username,
       connectedAt: new Date(),
     });
-
-    // Track user sockets
-    if (!userSockets.has(socket.userId)) {
-      userSockets.set(socket.userId, new Set());
-    }
+    
+    // Notify others about user coming online
+    socket.broadcast.emit('user_status_change', {
+      userId: socket.userId,
+      status: 'online'
+    });
+    
+    // Send current online users to the connected client
+    socket.emit('online_users', Array.from(userSockets.keys()));
     userSockets.get(socket.userId).add(socket.id);
 
     // Join user to their personal room

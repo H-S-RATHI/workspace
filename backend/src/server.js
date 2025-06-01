@@ -30,10 +30,41 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 };
 
-// Socket.IO setup
+// Socket.IO setup with explicit configuration
 const io = socketIo(server, {
-  cors: corsOptions,
+  cors: {
+    origin: corsOptions.origin,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
+  },
+  // Important: This must match the client-side path
+  path: '/socket.io/',
+  // Allow both websocket and polling
   transports: ['websocket', 'polling'],
+  // Don't serve the client files
+  serveClient: false,
+  // Enable compatibility with Socket.IO v2 clients
+  allowEIO3: true,
+  // Connection settings
+  pingTimeout: 30000, // Increase timeout to 30s
+  pingInterval: 25000,
+  // Security settings
+  cookie: false,
+  // Enable HTTP compression
+  httpCompression: true,
+  // Enable WebSocket per-message deflate
+  perMessageDeflate: {
+    threshold: 1024, // Size threshold (in bytes)
+    concurrencyLimit: 10
+  },
+  // Allow binary data
+  allowEIO4: true,
+  // Enable CORS for all methods
+  allowRequest: (req, callback) => {
+    // Additional request validation can be done here
+    callback(null, true);
+  }
 });
 
 // Initialize WebSocket handlers

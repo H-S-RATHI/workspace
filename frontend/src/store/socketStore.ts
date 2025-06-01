@@ -1,9 +1,33 @@
 import { create } from 'zustand'
-import { io, Socket } from 'socket.io-client'
+import { io, type Socket } from 'socket.io-client'
 import toast from 'react-hot-toast'
 
 import { useAuthStore } from './authStore'
-import type { Message, Conversation } from '../types/chat'
+import type { Message } from '../types/chat'
+
+// Type definitions for socket events
+interface UserStatusChangeEvent {
+  userId: string;
+  status: 'online' | 'offline';
+}
+
+interface TypingEvent {
+  userId: string;
+  username: string;
+  conversationId: string;
+}
+
+interface CallEvent {
+  callId: string;
+  [key: string]: any;
+}
+
+interface OnlineUsersEvent extends Array<string> {}
+
+interface ErrorEvent {
+  message: string;
+  [key: string]: any;
+}
 
 interface SocketState {
   socket: Socket | null
@@ -40,116 +64,161 @@ export const useSocketStore = create<SocketStore>((set, get) => ({
     const { accessToken } = useAuthStore.getState()
     
     if (!accessToken || get().socket?.connected) {
-      return
+      return;
     }
 
-    const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:12000', {
-      auth: {
-        token: accessToken,
-      },
-      transports: ['websocket', 'polling'],
-    })
-
-    // Connection events
-    socket.on('connect', () => {
-      console.log('Socket connected:', socket.id)
-      set({ isConnected: true })
-    })
-
-    socket.on('disconnect', (reason) => {
-      console.log('Socket disconnected:', reason)
-      set({ isConnected: false })
-    })
-
-    socket.on('connect_error', (error) => {
-      console.error('Socket connection error:', error)
-      toast.error('Connection failed')
-    })
-
-    // User presence events
-    socket.on('online_users', (users: string[]) => {
-      set({ onlineUsers: users })
-    })
-
-    socket.on('user_status_change', ({ userId, status }) => {
-      const { onlineUsers } = get()
-      if (status === 'online') {
-        set({ onlineUsers: [...onlineUsers.filter(id => id !== userId), userId] })
-      } else {
-        set({ onlineUsers: onlineUsers.filter(id => id !== userId) })
-      }
-    })
-
-    // Message events
-    socket.on('new_message', (message: Message) => {
-      // This will be handled by the chat store or components
-      console.log('New message received:', message)
-    })
-
-    socket.on('message_delivered', ({ messageId }) => {
-      console.log('Message delivered:', messageId)
-    })
-
-    socket.on('message_read', ({ messageId }) => {
-      console.log('Message read:', messageId)
-    })
-
-    // Typing events
-    socket.on('user_typing', ({ userId, username, conversationId }) => {
-      const { typingUsers } = get()
-      const currentTyping = typingUsers[conversationId] || []
+    try {
+      // Ensure we have a clean URL without trailing slashes
+      // Remove /api/v1 from the URL if present, as Socket.IO needs to connect to the root
+      let baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:12000').replace(/\/+$/, '');
+      baseUrl = baseUrl.replace(/\/api\/v1$/, ''); // Remove /api/v1 if present
       
-      if (!currentTyping.includes(userId)) {
+      console.log('Initializing socket connection to:', baseUrl);
+      
+      // Create socket instance with explicit configuration
+      const newSocket = io(baseUrl, {
+        // Authentication
+        auth: {
+          token: accessToken,
+        },
+        // Connection settings
+        transports: ['websocket', 'polling'],
+        path: '/socket.io/', // Must match server-side path
+        autoConnect: false,  // We'll connect manually after setting up handlers
+        // Reconnection settings
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        // Timeout settings
+        timeout: 20000,
+        // Security
+        withCredentials: true,
+        // Force new connection to avoid issues with reconnection
+        forceNew: true,
+        // Disable multiplexing to avoid potential issues
+        multiplex: false,
+        // Add query parameters if needed
+        query: {
+          token: accessToken,
+          client: 'web',
+          version: '1.0.0'
+        }
+      });
+      
+      // Debug logging
+      console.log('Socket instance created, setting up event listeners...');
+      
+      // Connection events
+      newSocket.on('connect', () => {
+        console.log('Socket connected:', newSocket.id);
+        set({ isConnected: true });
+      });
+
+      newSocket.on('disconnect', (reason: string) => {
+        console.log('Socket disconnected:', reason);
+        set({ isConnected: false });
+      });
+
+      newSocket.on('connect_error', (error: Error) => {
+        console.error('Socket connection error:', error);
+        toast.error('Connection failed');
+      });
+
+      // User presence events
+      newSocket.on('online_users', (users: OnlineUsersEvent) => {
+        set({ onlineUsers: users });
+      });
+
+      newSocket.on('user_status_change', ({ userId, status }: UserStatusChangeEvent) => {
+        const { onlineUsers } = get();
+        if (status === 'online') {
+          set({ onlineUsers: [...onlineUsers.filter(id => id !== userId), userId] });
+        } else {
+          set({ onlineUsers: onlineUsers.filter(id => id !== userId) });
+        }
+      });
+
+      // Message events
+      newSocket.on('new_message', (message: Message) => {
+        // This will be handled by the chat store or components
+        console.log('New message received:', message);
+      });
+
+      newSocket.on('message_delivered', ({ messageId }: { messageId: string }) => {
+        console.log('Message delivered:', messageId);
+      });
+
+      newSocket.on('message_read', ({ messageId }: { messageId: string }) => {
+        console.log('Message read:', messageId);
+      });
+
+      // Typing events
+      newSocket.on('user_typing', ({ userId, username: _username, conversationId }: TypingEvent) => {
+        const { typingUsers } = get();
+        const currentTyping = typingUsers[conversationId] || [];
+        
+        if (!currentTyping.includes(userId)) {
+          set({
+            typingUsers: {
+              ...typingUsers,
+              [conversationId]: [...currentTyping, userId],
+            },
+          });
+        }
+      });
+
+      newSocket.on('user_stopped_typing', ({ userId, conversationId }: { userId: string, conversationId: string }) => {
+        const { typingUsers } = get();
+        const currentTyping = typingUsers[conversationId] || [];
+        
         set({
           typingUsers: {
             ...typingUsers,
-            [conversationId]: [...currentTyping, userId],
+            [conversationId]: currentTyping.filter(id => id !== userId),
           },
-        })
-      }
-    })
+        });
+      });
 
-    socket.on('user_stopped_typing', ({ userId, conversationId }) => {
-      const { typingUsers } = get()
-      const currentTyping = typingUsers[conversationId] || []
+      // Call events
+      newSocket.on('incoming_call', (data: CallEvent) => {
+        const { callId, callerId, callerUsername, callType } = data;
+        console.log('Incoming call:', { callId, callerId, callerUsername, callType });
+        // This will be handled by the call store or components
+      });
+
+      newSocket.on('call_answered', (data: CallEvent) => {
+        console.log('Call answered:', data.callId);
+      });
+
+      newSocket.on('call_rejected', (data: CallEvent) => {
+        console.log('Call rejected:', data.callId);
+        toast.error('Call was rejected');
+      });
+
+      newSocket.on('call_ended', (data: CallEvent) => {
+        console.log('Call ended:', data.callId);
+      });
+
+      newSocket.on('ice_candidate', (data: { fromUserId: string, candidate: any }) => {
+        console.log('ICE candidate received from:', data.fromUserId);
+      });
+
+      // Error events
+      newSocket.on('error', (data: ErrorEvent) => {
+        toast.error(data.message);
+      });
       
-      set({
-        typingUsers: {
-          ...typingUsers,
-          [conversationId]: currentTyping.filter(id => id !== userId),
-        },
-      })
-    })
-
-    // Call events
-    socket.on('incoming_call', ({ callId, callerId, callerUsername, offer, callType }) => {
-      console.log('Incoming call:', { callId, callerId, callerUsername, callType })
-      // This will be handled by the call store or components
-    })
-
-    socket.on('call_answered', ({ callId, answer }) => {
-      console.log('Call answered:', callId)
-    })
-
-    socket.on('call_rejected', ({ callId }) => {
-      console.log('Call rejected:', callId)
-      toast.error('Call was rejected')
-    })
-
-    socket.on('call_ended', ({ callId }) => {
-      console.log('Call ended:', callId)
-    })
-
-    socket.on('ice_candidate', ({ fromUserId, candidate }) => {
-      console.log('ICE candidate received from:', fromUserId)
-    })
-
-    // Error events
-    socket.on('error', ({ message }) => {
-      toast.error(message)
-    })
-
-    set({ socket })
+      // Manually connect after setting up all event listeners
+      console.log('Attempting to connect socket...');
+      newSocket.connect();
+      
+      // Store the socket in the state
+      set({ socket: newSocket });
+    } catch (error) {
+      console.error('Failed to initialize socket:', error);
+      toast.error('Failed to connect to the server');
+    }
   },
 
   disconnect: () => {

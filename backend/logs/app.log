@@ -155,3 +155,69 @@
 [2025-06-01T13:53:09.428Z] INFO: 📱 SMS OTP would be sent to +917454029951: 797311
 [2025-06-01T13:53:09.430Z] INFO: OTP sent to +917454029951 {"identifier":"+917454029951","type":"phone"}
 [2025-06-01T13:53:13.149Z] INFO: User logged in {"userId":"ab868a3f-103f-4f82-980c-8d73c1361ea4","username":"golu_singh"}
+[2025-06-01T13:56:55.318Z] INFO: 🚀 Server running on port 12000 in development mode
+[2025-06-01T13:56:55.322Z] INFO: 📡 Socket.IO server initialized
+[2025-06-01T13:56:55.323Z] INFO: 🔗 API available at http://localhost:12000/api/v1
+[2025-06-01T13:57:42.629Z] INFO: 🚀 Server running on port 12000 in development mode
+[2025-06-01T13:57:42.632Z] INFO: 📡 Socket.IO server initialized
+[2025-06-01T13:57:42.634Z] INFO: 🔗 API available at http://localhost:12000/api/v1
+[2025-06-01T13:58:36.267Z] INFO: SIGINT received, shutting down gracefully
+[2025-06-01T13:58:36.270Z] INFO: Process terminated
+[2025-06-01T13:58:40.181Z] INFO: 🚀 Server running on port 12000 in development mode
+[2025-06-01T13:58:40.185Z] INFO: 📡 Socket.IO server initialized
+[2025-06-01T13:58:40.185Z] INFO: 🔗 API available at http://localhost:12000/api/v1
+[2025-06-01T13:59:01.094Z] INFO: 📱 SMS OTP would be sent to +917454029951: 865072
+[2025-06-01T13:59:01.095Z] INFO: OTP sent to +917454029951 {"identifier":"+917454029951","type":"phone"}
+[2025-06-01T13:59:05.204Z] INFO: User logged in {"userId":"ab868a3f-103f-4f82-980c-8d73c1361ea4","username":"golu_singh"}
+[2025-06-01T13:59:24.772Z] INFO: SIGINT received, shutting down gracefully
+[2025-06-01T14:01:15.837Z] INFO: 🚀 Server running on port 12000 in development mode
+[2025-06-01T14:01:15.842Z] INFO: 📡 Socket.IO server initialized
+[2025-06-01T14:01:15.848Z] INFO: 🔗 API available at http://localhost:12000/api/v1
+[2025-06-01T14:01:25.917Z] INFO: 📱 SMS OTP would be sent to +917454029951: 247971
+[2025-06-01T14:01:25.918Z] INFO: OTP sent to +917454029951 {"identifier":"+917454029951","type":"phone"}
+[2025-06-01T14:01:31.119Z] INFO: User logged in {"userId":"ab868a3f-103f-4f82-980c-8d73c1361ea4","username":"golu_singh"}
+[2025-06-01T14:02:40.070Z] INFO: 🚀 Server running on port 12000 in development mode
+[2025-06-01T14:02:40.077Z] INFO: 📡 Socket.IO server initialized
+[2025-06-01T14:02:40.098Z] INFO: 🔗 API available at http://localhost:12000/api/v1
+[2025-06-01T14:03:21.466Z] INFO: Initializing Socket.IO default namespace
+[2025-06-01T14:03:21.484Z] INFO: 🚀 Server running on port 12000 in development mode
+[2025-06-01T14:03:21.485Z] INFO: 📡 Socket.IO server initialized
+[2025-06-01T14:03:21.488Z] INFO: 🔗 API available at http://localhost:12000/api/v1
+[2025-06-01T14:04:02.980Z] INFO: Initializing Socket.IO default namespace
+[2025-06-01T14:04:02.998Z] INFO: 🚀 Server running on port 12000 in development mode
+[2025-06-01T14:04:03.000Z] INFO: 📡 Socket.IO server initialized
+[2025-06-01T14:04:03.004Z] INFO: 🔗 API available at http://localhost:12000/api/v1
+[2025-06-01T14:08:29.714Z] INFO: SIGINT received, shutting down gracefully
+[2025-06-01T14:08:29.718Z] INFO: Process terminated
+[2025-06-01T14:08:33.334Z] INFO: Initializing Socket.IO default namespace
+[2025-06-01T14:08:33.352Z] INFO: 🚀 Server running on port 12000 in development mode
+[2025-06-01T14:08:33.354Z] INFO: 📡 Socket.IO server initialized
+[2025-06-01T14:08:33.357Z] INFO: 🔗 API available at http://localhost:12000/api/v1
+[2025-06-01T14:08:33.778Z] INFO: SIGINT received, shutting down gracefully
+[2025-06-01T14:08:39.723Z] INFO: Initializing Socket.IO default namespace
+[2025-06-01T14:08:39.738Z] INFO: 🚀 Server running on port 12000 in development mode
+[2025-06-01T14:08:39.740Z] INFO: 📡 Socket.IO server initialized
+[2025-06-01T14:08:39.742Z] INFO: 🔗 API available at http://localhost:12000/api/v1
+[2025-06-01T14:09:33.700Z] DEBUG: Authenticating socket connection: P98nV9dGAZHrhksxAAAD
+[2025-06-01T14:09:33.701Z] DEBUG: Authenticating socket connection {"socketId":"P98nV9dGAZHrhksxAAAD","auth":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJhYjg2OGEzZi0xMDNmLTRmODItOTgwYy04ZDczYzEzNjFlYTQiLCJpYXQiOjE3NDg3ODY0OTEsImV4cCI6MTc0ODc5MDA5MX0.atUFWnEksFzyGuZWEOH7P9sITitXPSYZNH02oKth-9o"},"headers":{"host":"localhost:12000","connection":"Upgrade","pragma":"no-cache","cache-control":"no-cache","user-agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0","upgrade":"websocket","origin":"http://localhost:12001","sec-websocket-version":"13","accept-encoding":"gzip, deflate, br, zstd","accept-language":"en-US,en;q=0.9,en-IN;q=0.8","sec-websocket-key":"Hrn8zspDSdpMo9+JovM96Q==","sec-websocket-extensions":"permessage-deflate; client_max_window_bits"}}
+[2025-06-01T14:09:33.707Z] DEBUG: Verifying JWT token {"socketId":"P98nV9dGAZHrhksxAAAD"}
+[2025-06-01T14:09:33.713Z] DEBUG: Fetching user from database {"userId":"ab868a3f-103f-4f82-980c-8d73c1361ea4"}
+[2025-06-01T14:09:33.722Z] DEBUG: Socket authentication successful {"socketId":"P98nV9dGAZHrhksxAAAD","userId":"ab868a3f-103f-4f82-980c-8d73c1361ea4","username":"golu_singh"}
+[2025-06-01T14:09:33.726Z] DEBUG: New socket connection: P98nV9dGAZHrhksxAAAD {"userId":"ab868a3f-103f-4f82-980c-8d73c1361ea4","handshake":{"headers":{"host":"localhost:12000","connection":"Upgrade","pragma":"no-cache","cache-control":"no-cache","user-agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0","upgrade":"websocket","origin":"http://localhost:12001","sec-websocket-version":"13","accept-encoding":"gzip, deflate, br, zstd","accept-language":"en-US,en;q=0.9,en-IN;q=0.8","sec-websocket-key":"Hrn8zspDSdpMo9+JovM96Q==","sec-websocket-extensions":"permessage-deflate; client_max_window_bits"},"auth":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJhYjg2OGEzZi0xMDNmLTRmODItOTgwYy04ZDczYzEzNjFlYTQiLCJpYXQiOjE3NDg3ODY0OTEsImV4cCI6MTc0ODc5MDA5MX0.atUFWnEksFzyGuZWEOH7P9sITitXPSYZNH02oKth-9o"},"query":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJhYjg2OGEzZi0xMDNmLTRmODItOTgwYy04ZDczYzEzNjFlYTQiLCJpYXQiOjE3NDg3ODY0OTEsImV4cCI6MTc0ODc5MDA5MX0.atUFWnEksFzyGuZWEOH7P9sITitXPSYZNH02oKth-9o","client":"web","version":"1.0.0","EIO":"4","transport":"websocket"}}}
+[2025-06-01T14:09:33.739Z] INFO: User ab868a3f-103f-4f82-980c-8d73c1361ea4 (golu_singh) connected with socket P98nV9dGAZHrhksxAAAD
+[2025-06-01T14:09:46.757Z] INFO: User golu_singh disconnected: transport close
+[2025-06-01T14:09:47.476Z] DEBUG: Authenticating socket connection: 6udkFp5JcImhpFHeAAAF
+[2025-06-01T14:09:47.477Z] DEBUG: Authenticating socket connection {"socketId":"6udkFp5JcImhpFHeAAAF","auth":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJhYjg2OGEzZi0xMDNmLTRmODItOTgwYy04ZDczYzEzNjFlYTQiLCJpYXQiOjE3NDg3ODY0OTEsImV4cCI6MTc0ODc5MDA5MX0.atUFWnEksFzyGuZWEOH7P9sITitXPSYZNH02oKth-9o"},"headers":{"host":"localhost:12000","connection":"Upgrade","pragma":"no-cache","cache-control":"no-cache","user-agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0","upgrade":"websocket","origin":"http://localhost:12001","sec-websocket-version":"13","accept-encoding":"gzip, deflate, br, zstd","accept-language":"en-US,en;q=0.9,en-IN;q=0.8","sec-websocket-key":"Gs+7pzCB6hwMfamaKy+Xzg==","sec-websocket-extensions":"permessage-deflate; client_max_window_bits"}}
+[2025-06-01T14:09:47.478Z] DEBUG: Verifying JWT token {"socketId":"6udkFp5JcImhpFHeAAAF"}
+[2025-06-01T14:09:47.482Z] DEBUG: Fetching user from database {"userId":"ab868a3f-103f-4f82-980c-8d73c1361ea4"}
+[2025-06-01T14:09:47.595Z] DEBUG: Socket authentication successful {"socketId":"6udkFp5JcImhpFHeAAAF","userId":"ab868a3f-103f-4f82-980c-8d73c1361ea4","username":"golu_singh"}
+[2025-06-01T14:09:47.609Z] DEBUG: New socket connection: 6udkFp5JcImhpFHeAAAF {"userId":"ab868a3f-103f-4f82-980c-8d73c1361ea4","handshake":{"headers":{"host":"localhost:12000","connection":"Upgrade","pragma":"no-cache","cache-control":"no-cache","user-agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0","upgrade":"websocket","origin":"http://localhost:12001","sec-websocket-version":"13","accept-encoding":"gzip, deflate, br, zstd","accept-language":"en-US,en;q=0.9,en-IN;q=0.8","sec-websocket-key":"Gs+7pzCB6hwMfamaKy+Xzg==","sec-websocket-extensions":"permessage-deflate; client_max_window_bits"},"auth":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJhYjg2OGEzZi0xMDNmLTRmODItOTgwYy04ZDczYzEzNjFlYTQiLCJpYXQiOjE3NDg3ODY0OTEsImV4cCI6MTc0ODc5MDA5MX0.atUFWnEksFzyGuZWEOH7P9sITitXPSYZNH02oKth-9o"},"query":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJhYjg2OGEzZi0xMDNmLTRmODItOTgwYy04ZDczYzEzNjFlYTQiLCJpYXQiOjE3NDg3ODY0OTEsImV4cCI6MTc0ODc5MDA5MX0.atUFWnEksFzyGuZWEOH7P9sITitXPSYZNH02oKth-9o","client":"web","version":"1.0.0","EIO":"4","transport":"websocket"}}}
+[2025-06-01T14:09:47.692Z] INFO: User ab868a3f-103f-4f82-980c-8d73c1361ea4 (golu_singh) connected with socket 6udkFp5JcImhpFHeAAAF
+[2025-06-01T14:09:47.811Z] INFO: User golu_singh disconnected: transport error
+[2025-06-01T14:09:48.174Z] DEBUG: Authenticating socket connection: AcEP6_Bro1aiT0idAAAI
+[2025-06-01T14:09:48.175Z] DEBUG: Authenticating socket connection {"socketId":"AcEP6_Bro1aiT0idAAAI","auth":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJhYjg2OGEzZi0xMDNmLTRmODItOTgwYy04ZDczYzEzNjFlYTQiLCJpYXQiOjE3NDg3ODY0OTEsImV4cCI6MTc0ODc5MDA5MX0.atUFWnEksFzyGuZWEOH7P9sITitXPSYZNH02oKth-9o"},"headers":{"host":"localhost:12000","connection":"Upgrade","pragma":"no-cache","cache-control":"no-cache","user-agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0","upgrade":"websocket","origin":"http://localhost:12001","sec-websocket-version":"13","accept-encoding":"gzip, deflate, br, zstd","accept-language":"en-US,en;q=0.9,en-IN;q=0.8","sec-websocket-key":"TvcZ/9j7Xk9tz1wAJTK/Qw==","sec-websocket-extensions":"permessage-deflate; client_max_window_bits"}}
+[2025-06-01T14:09:48.176Z] DEBUG: Verifying JWT token {"socketId":"AcEP6_Bro1aiT0idAAAI"}
+[2025-06-01T14:09:48.178Z] DEBUG: Fetching user from database {"userId":"ab868a3f-103f-4f82-980c-8d73c1361ea4"}
+[2025-06-01T14:09:48.181Z] DEBUG: Socket authentication successful {"socketId":"AcEP6_Bro1aiT0idAAAI","userId":"ab868a3f-103f-4f82-980c-8d73c1361ea4","username":"golu_singh"}
+[2025-06-01T14:09:48.182Z] DEBUG: New socket connection: AcEP6_Bro1aiT0idAAAI {"userId":"ab868a3f-103f-4f82-980c-8d73c1361ea4","handshake":{"headers":{"host":"localhost:12000","connection":"Upgrade","pragma":"no-cache","cache-control":"no-cache","user-agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0","upgrade":"websocket","origin":"http://localhost:12001","sec-websocket-version":"13","accept-encoding":"gzip, deflate, br, zstd","accept-language":"en-US,en;q=0.9,en-IN;q=0.8","sec-websocket-key":"TvcZ/9j7Xk9tz1wAJTK/Qw==","sec-websocket-extensions":"permessage-deflate; client_max_window_bits"},"auth":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJhYjg2OGEzZi0xMDNmLTRmODItOTgwYy04ZDczYzEzNjFlYTQiLCJpYXQiOjE3NDg3ODY0OTEsImV4cCI6MTc0ODc5MDA5MX0.atUFWnEksFzyGuZWEOH7P9sITitXPSYZNH02oKth-9o"},"query":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJhYjg2OGEzZi0xMDNmLTRmODItOTgwYy04ZDczYzEzNjFlYTQiLCJpYXQiOjE3NDg3ODY0OTEsImV4cCI6MTc0ODc5MDA5MX0.atUFWnEksFzyGuZWEOH7P9sITitXPSYZNH02oKth-9o","client":"web","version":"1.0.0","EIO":"4","transport":"websocket"}}}
+[2025-06-01T14:09:48.183Z] INFO: User ab868a3f-103f-4f82-980c-8d73c1361ea4 (golu_singh) connected with socket AcEP6_Bro1aiT0idAAAI
