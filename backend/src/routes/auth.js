@@ -206,6 +206,22 @@ router.post('/verify-otp', [
     let isNewUser = false;
 
     if (existingUser) {
+      // If user exists and is trying to sign up again, prompt them to log in
+      if (fullName) {
+        return res.status(400).json({
+          success: false,
+          error: 'An account with this phone number already exists',
+          errorCode: 'ACCOUNT_EXISTS',
+          existingUser: {
+            userId: existingUser.userId,
+            username: existingUser.username,
+            email: existingUser.email,
+            phoneNumber: existingUser.phoneNumber
+          },
+          message: 'Please log in instead.'
+        });
+      }
+      
       // Existing user login
       user = existingUser;
     } else {
