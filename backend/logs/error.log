@@ -11,3 +11,5 @@
 [2025-06-01T13:24:32.050Z] ERROR: Verify OTP error: {"length":127,"name":"error","severity":"ERROR","code":"42703","position":"22","file":"parse_target.c","line":"1070","routine":"checkInsertTargets"}
 [2025-06-01T13:25:33.916Z] ERROR: Verify OTP error: {"length":127,"name":"error","severity":"ERROR","code":"42703","position":"22","file":"parse_target.c","line":"1070","routine":"checkInsertTargets"}
 [2025-06-01T13:28:08.246Z] ERROR: Verify OTP error:
+[2025-06-01T13:44:12.168Z] ERROR: Get user info error: {"length":115,"name":"error","severity":"ERROR","code":"42703","position":"66","file":"parse_relation.c","line":"3721","routine":"errorMissingColumn"}
+[2025-06-01T13:44:12.201Z] ERROR: Get user info error: {"length":115,"name":"error","severity":"ERROR","code":"42703","position":"66","file":"parse_relation.c","line":"3721","routine":"errorMissingColumn"}

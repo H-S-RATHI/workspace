@@ -518,8 +518,7 @@ router.get('/me', authenticateToken, async (req, res) => {
   try {
     const user = await db('users')
       .where({ userId: req.user.userId })
-      .select('userId', 'username', 'fullName', 'email', 'phoneNumber', 
-              'profilePhotoUrl', 'twoFaEnabled', 'isBusinessAccount', 'createdAt')
+      .select('userId', 'username', 'fullName', 'email', 'phoneNumber', 'twoFaEnabled', 'createdAt')
       .first();
 
     if (!user) {
