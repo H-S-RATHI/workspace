@@ -88,6 +88,29 @@ router.post('/send-otp', [
     const identifier = phoneNumber || email;
     const identifierType = phoneNumber ? 'phone' : 'email';
 
+    // If this is a signup request (has fullName), check if user already exists
+    if (req.body.fullName) {
+      const existingUser = await db('users')
+        .where(phoneNumber ? { phoneNumber } : { email })
+        .where({ isDeleted: false })
+        .first();
+
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          error: 'An account with this ' + (phoneNumber ? 'phone number' : 'email') + ' already exists',
+          errorCode: 'ACCOUNT_EXISTS',
+          existingUser: {
+            userId: existingUser.userId,
+            username: existingUser.username,
+            email: existingUser.email,
+            phoneNumber: existingUser.phoneNumber
+          },
+          message: 'Please log in instead.'
+        });
+      }
+    }
+
     // Check rate limiting
     const rateLimitKey = `otp_rate_limit:${identifier}`;
     const attempts = await cache.get(rateLimitKey) || 0;

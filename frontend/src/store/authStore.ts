@@ -15,7 +15,7 @@ interface AuthState {
 
 interface AuthActions {
   login: (credentials: LoginCredentials) => Promise<void>
-  signup: (data: SignupData) => Promise<void>
+  signup: (data: SignupData) => Promise<{ success: boolean } | void>
   logout: () => void
   setTokens: (accessToken: string, refreshToken: string) => void
   setUser: (user: User) => void
@@ -58,16 +58,30 @@ export const useAuthStore = create<AuthStore>()(
         try {
           set({ isLoading: true })
           
-          const response = await authAPI.sendOTP({
+          // Create a new object with only the properties that LoginCredentials expects
+          const loginCredentials: LoginCredentials = {
             phoneNumber: data.phoneNumber,
             email: data.email,
-          })
+          };
+          
+          // Add fullName to the request body as a separate property
+          const response = await authAPI.sendOTP({
+            ...loginCredentials,
+            fullName: data.fullName, // This will be used by the backend to identify signup requests
+          } as any) // Type assertion needed because LoginCredentials doesn't include fullName
           
           if (response.success) {
             toast.success('OTP sent successfully!')
             // Navigate to OTP verification will be handled by the component
+            return { success: true }
           }
+          
+          return { success: false }
         } catch (error: any) {
+          if (error.response?.data?.errorCode === 'ACCOUNT_EXISTS') {
+            // This will be handled by the component to redirect to login
+            throw new Error('ACCOUNT_EXISTS')
+          }
           toast.error(error.message || 'Failed to send OTP')
           throw error
         } finally {

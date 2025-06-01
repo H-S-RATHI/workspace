@@ -23,17 +23,34 @@ const SignupPage = () => {
 
   const onSubmit = async (data: SignupData) => {
     try {
-      await signup(data)
-      // Navigate to OTP verification with the signup data
-      navigate('/auth/verify-otp', { 
-        state: { 
-          credentials: data,
-          isLogin: false,
-          signupData: data
-        } 
-      })
-    } catch (error) {
-      // Error is already handled by the store
+      const result = await signup(data)
+      
+      // Only navigate to OTP verification if signup was successful
+      if (result?.success) {
+        navigate('/auth/verify-otp', { 
+          state: { 
+            credentials: data,
+            isLogin: false,
+            signupData: data
+          } 
+        })
+      }
+    } catch (error: any) {
+      if (error.message === 'ACCOUNT_EXISTS') {
+        // Redirect to login with the phone number/email pre-filled
+        navigate('/auth/login', {
+          state: {
+            credentials: {
+              phoneNumber: data.phoneNumber,
+              email: data.email
+            },
+            message: 'An account with this ' + 
+                    (data.phoneNumber ? 'phone number' : 'email') + 
+                    ' already exists. Please log in.'
+          }
+        })
+      }
+      // Other errors are already handled by the store
     }
   }
 

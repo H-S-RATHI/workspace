@@ -33,6 +33,14 @@ export interface OTPVerificationData {
 export interface AuthResponse {
   success: boolean
   message: string
+  error?: string
+  errorCode?: string
+  existingUser?: {
+    userId: string
+    username: string
+    email?: string
+    phoneNumber?: string
+  }
   user?: User
   tokens?: {
     accessToken: string

@@ -92,6 +92,20 @@ const OTPVerificationPage = () => {
 
       const response = await authAPI.verifyOTP(verificationData)
 
+      // Handle case where user tries to sign up with existing account
+      if (response.errorCode === 'ACCOUNT_EXISTS') {
+        toast.error('An account with this phone number already exists. Please log in instead.')
+        navigate('/auth/login', { 
+          state: { 
+            credentials: {
+              phoneNumber: verificationData.phoneNumber,
+              email: verificationData.email
+            }
+          } 
+        })
+        return
+      }
+
       if (response.success && response.tokens) {
         setTokens(response.tokens.accessToken, response.tokens.refreshToken)
         

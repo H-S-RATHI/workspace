@@ -1,9 +1,8 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { motion } from 'framer-motion'
 import { Phone, Mail, ArrowRight } from 'lucide-react'
-import toast from 'react-hot-toast'
 
 import { useAuthStore } from '../../store/authStore'
 import type { LoginCredentials } from '../../types/auth'
@@ -14,13 +13,30 @@ const LoginPage = () => {
   const [loginMethod, setLoginMethod] = useState<LoginMethod>('phone')
   const { login, isLoading } = useAuthStore()
   const navigate = useNavigate()
+  const location = useLocation()
+  
+  // Get message and credentials from location state if redirected from signup
+  const message = location.state?.message
+  const credentials = location.state?.credentials || {}
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     watch,
+    setValue,
   } = useForm<LoginCredentials>()
+  
+  // Set initial values if they were passed in location state
+  useEffect(() => {
+    if (credentials.phoneNumber) {
+      setValue('phoneNumber', credentials.phoneNumber)
+      setLoginMethod('phone')
+    } else if (credentials.email) {
+      setValue('email', credentials.email)
+      setLoginMethod('email')
+    }
+  }, [credentials, setValue])
 
   const onSubmit = async (data: LoginCredentials) => {
     try {
@@ -48,10 +64,10 @@ const LoginPage = () => {
     <div className="space-y-6">
       <div className="text-center">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          Welcome back
+          {message ? 'Account Exists' : 'Welcome back'}
         </h2>
         <p className="text-gray-600">
-          Sign in to your account to continue
+          {message || 'Sign in to your account to continue'}
         </p>
       </div>
 
