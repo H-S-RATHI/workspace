@@ -12,3 +12,13 @@
 [2025-06-01T09:36:03.395Z] INFO: 🚀 Server running on port 12000 in development mode
 [2025-06-01T09:36:03.398Z] INFO: 📡 Socket.IO server initialized
 [2025-06-01T09:36:03.399Z] INFO: 🔗 API available at http://localhost:12000/api/v1
+[2025-06-01T12:02:23.925Z] ERROR: ❌ Database connection failed: {"length":104,"name":"error","severity":"FATAL","code":"28P01","file":"auth.c","line":"324","routine":"auth_failed"}
+[2025-06-01T12:08:45.903Z] ERROR: ❌ Database connection failed: {"length":104,"name":"error","severity":"FATAL","code":"28P01","file":"auth.c","line":"324","routine":"auth_failed"}
+[2025-06-01T12:09:15.555Z] ERROR: ❌ Database connection failed: {"length":104,"name":"error","severity":"FATAL","code":"28P01","file":"auth.c","line":"324","routine":"auth_failed"}
+[2025-06-01T12:11:43.105Z] ERROR: ❌ Database connection failed: {"length":104,"name":"error","severity":"FATAL","code":"28P01","file":"auth.c","line":"324","routine":"auth_failed"}
+[2025-06-01T12:12:02.516Z] INFO: ✅ Database connected successfully
+[2025-06-01T12:17:26.095Z] INFO: 🚀 Server running on port 12000 in development mode
+[2025-06-01T12:17:26.097Z] INFO: 📡 Socket.IO server initialized
+[2025-06-01T12:17:26.099Z] INFO: 🔗 API available at http://localhost:12000/api/v1
+[2025-06-01T12:21:42.563Z] INFO: 📱 SMS OTP would be sent to +917454029951: 142543
+[2025-06-01T12:21:42.565Z] INFO: OTP sent to +917454029951 {"identifier":"+917454029951","type":"phone"}
