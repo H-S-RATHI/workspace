@@ -190,17 +190,20 @@ export const chatAPI = {
     return response.data
   },
 
+  sendMessage: async (conversationId: string, data: any): Promise<{ success: boolean; message: any }> => {
+    const response = await api.post(`/chat/conversations/${conversationId}/messages`, data)
+    return response.data
+  },
+
   uploadMedia: async (file: File, messageType: string): Promise<{ success: boolean; url: string }> => {
     const formData = new FormData()
-    formData.append('media', file)
-    formData.append('messageType', messageType)
-    
-    const response = await api.post('/chat/upload', formData, {
+    formData.append('file', file)
+    formData.append('type', messageType)
+    return api.post('/chat/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     })
-    return response.data
   },
 }
 

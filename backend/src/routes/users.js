@@ -286,11 +286,12 @@ router.get('/search', authenticateToken, async (req, res) => {
       .where('isDeleted', false)
       .where(function() {
         this.whereILike('username', searchTerm)
-            .orWhereILike('fullName', searchTerm);
+            .orWhereILike('fullName', searchTerm)
+            .orWhereILike('phoneNumber', searchTerm);
       })
       .select(
         'userId', 'username', 'fullName', 'profilePhotoUrl', 
-        'bio', 'isBusinessAccount'
+        'bio', 'isBusinessAccount', 'phoneNumber'
       )
       .orderBy('username')
       .limit(limit)
