@@ -1,71 +1,159 @@
 import { useLocation } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import { ProductCard } from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
+import { marketplaceService, type Product } from '../../services/marketplaceService'
 
 // Shop Tab - 2-column mobile, 4-column desktop grid layouts
-const ShopTab = () => (
-  <div className="h-full overflow-y-auto bg-gray-50">
-    <div className="p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Shop</h2>
-          <p className="text-gray-600">Discover amazing products from our community</p>
-        </div>
-        
-        {/* Categories */}
-        <div className="mb-8">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Categories</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
-            {[
-              { name: 'Electronics', icon: '📱', color: 'from-blue-500 to-cyan-500' },
-              { name: 'Fashion', icon: '👕', color: 'from-pink-500 to-rose-500' },
-              { name: 'Home', icon: '🏠', color: 'from-green-500 to-emerald-500' },
-              { name: 'Sports', icon: '⚽', color: 'from-orange-500 to-amber-500' },
-              { name: 'Books', icon: '📚', color: 'from-purple-500 to-violet-500' },
-              { name: 'Beauty', icon: '💄', color: 'from-red-500 to-pink-500' },
-              { name: 'Toys', icon: '🧸', color: 'from-yellow-500 to-orange-500' },
-              { name: 'Food', icon: '🍕', color: 'from-indigo-500 to-blue-500' }
-            ].map((category) => (
-              <button key={category.name} className={`bg-gradient-to-br ${category.color} text-white rounded-xl p-4 text-center hover:scale-105 transition-all duration-200 shadow-md`}>
-                <div className="text-2xl mb-2">{category.icon}</div>
-                <p className="font-medium text-sm">{category.name}</p>
-              </button>
-            ))}
-          </div>
-        </div>
+const ShopTab = () => {
+  const [products, setProducts] = useState<Product[]>([])
+  const [categories, setCategories] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
 
-        {/* Products Grid */}
-        <div className="mb-8">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Trending Products</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {[
-              { title: 'iPhone 15 Pro Max', price: '$1,199.00', rating: 4.8, badge: 'New' },
-              { title: 'MacBook Air M2', price: '$999.00', rating: 4.9 },
-              { title: 'Nike Air Jordan 1', price: '$170.00', rating: 4.7, badge: '20% off' },
-              { title: 'Sony WH-1000XM5', price: '$399.00', rating: 4.6 },
-              { title: 'Samsung Galaxy S24', price: '$899.00', rating: 4.5, badge: 'Hot' },
-              { title: 'iPad Pro 12.9"', price: '$1,099.00', rating: 4.8 },
-              { title: 'Adidas Ultraboost 22', price: '$180.00', rating: 4.4, badge: 'Sale' },
-              { title: 'AirPods Pro 2', price: '$249.00', rating: 4.7 },
-              { title: 'Tesla Model Y', price: '$52,990.00', rating: 4.9, badge: 'Premium' },
-              { title: 'Gaming Setup', price: '$2,499.00', rating: 4.6, badge: 'Bundle' }
-            ].map((product, index) => (
-              <ProductCard
-                key={index}
-                image={`/api/placeholder/300/300`}
-                title={product.title}
-                price={product.price}
-                rating={product.rating}
-                badge={product.badge}
-                onClick={() => console.log('Product clicked:', product.title)}
-              />
-            ))}
+  useEffect(() => {
+    loadInitialData()
+  }, [])
+
+  useEffect(() => {
+    if (selectedCategory) {
+      loadProductsByCategory(selectedCategory)
+    } else {
+      loadTrendingProducts()
+    }
+  }, [selectedCategory])
+
+  const loadInitialData = async () => {
+    try {
+      const [categoriesResponse, productsResponse] = await Promise.all([
+        marketplaceService.getCategories(),
+        marketplaceService.getTrendingProducts()
+      ])
+      setCategories(categoriesResponse.categories || [])
+      setProducts(productsResponse.products || [])
+    } catch (error) {
+      console.error('Error loading initial data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadTrendingProducts = async () => {
+    try {
+      setLoading(true)
+      const response = await marketplaceService.getTrendingProducts()
+      setProducts(response.products || [])
+    } catch (error) {
+      console.error('Error loading trending products:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadProductsByCategory = async (category: string) => {
+    try {
+      setLoading(true)
+      const response = await marketplaceService.getProductsByCategory(category)
+      setProducts(response.products || [])
+    } catch (error) {
+      console.error('Error loading products by category:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCategoryClick = (categoryName: string) => {
+    setSelectedCategory(selectedCategory === categoryName ? null : categoryName)
+  }
+
+  const handleProductClick = async (productId: string) => {
+    try {
+      await marketplaceService.recordProductView(productId)
+      // TODO: Navigate to product detail page
+      console.log('Product clicked:', productId)
+    } catch (error) {
+      console.error('Error recording product view:', error)
+    }
+  }
+
+  const defaultCategories = [
+    { name: 'Electronics', icon: '📱', color: 'from-blue-500 to-cyan-500' },
+    { name: 'Fashion', icon: '👕', color: 'from-pink-500 to-rose-500' },
+    { name: 'Home', icon: '🏠', color: 'from-green-500 to-emerald-500' },
+    { name: 'Sports', icon: '⚽', color: 'from-orange-500 to-amber-500' },
+    { name: 'Books', icon: '📚', color: 'from-purple-500 to-violet-500' },
+    { name: 'Beauty', icon: '💄', color: 'from-red-500 to-pink-500' },
+    { name: 'Toys', icon: '🧸', color: 'from-yellow-500 to-orange-500' },
+    { name: 'Food', icon: '🍕', color: 'from-indigo-500 to-blue-500' }
+  ]
+
+  return (
+    <div className="h-full overflow-y-auto bg-gray-50">
+      <div className="p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Shop</h2>
+            <p className="text-gray-600">Discover amazing products from our community</p>
+          </div>
+          
+          {/* Categories */}
+          <div className="mb-8">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Categories</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+              {defaultCategories.map((category) => (
+                <button 
+                  key={category.name} 
+                  onClick={() => handleCategoryClick(category.name)}
+                  className={`bg-gradient-to-br ${category.color} text-white rounded-xl p-4 text-center hover:scale-105 transition-all duration-200 shadow-md ${
+                    selectedCategory === category.name ? 'ring-2 ring-white ring-offset-2' : ''
+                  }`}
+                >
+                  <div className="text-2xl mb-2">{category.icon}</div>
+                  <p className="font-medium text-sm">{category.name}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Products Grid */}
+          <div className="mb-8">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              {selectedCategory ? `${selectedCategory} Products` : 'Trending Products'}
+            </h3>
+            
+            {loading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="text-gray-500 mt-2">Loading products...</p>
+              </div>
+            ) : products.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {products.map((product) => (
+                  <ProductCard
+                    key={product.productId}
+                    image={product.imageUrls[0] || '/api/placeholder/300/300'}
+                    title={product.title}
+                    price={`$${product.price.toFixed(2)}`}
+                    rating={4.5} // TODO: Add rating to product model
+                    badge={product.condition === 'NEW' ? 'New' : undefined}
+                    onClick={() => handleProductClick(product.productId)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-500">No products found</p>
+                <p className="text-sm text-gray-400 mt-1">
+                  {selectedCategory ? `No products in ${selectedCategory} category` : 'Check back later for new products'}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
     </div>
-  </div>
-)
+  )
+}
 
 const SellTab = () => (
   <div className="h-full overflow-y-auto bg-gray-50">

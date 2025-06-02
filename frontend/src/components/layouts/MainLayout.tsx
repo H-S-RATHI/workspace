@@ -5,12 +5,15 @@ import { AnimatePresence, motion } from 'framer-motion';
 import MobileNavigation from '../ui/MobileNavigation';
 import DesktopSidebar from '../ui/DesktopSidebar';
 import TopBar from '../ui/TopBar';
+import VideoCall from '../ui/VideoCall';
 import { useAuthStore } from '../../store/authStore';
+import { useCall } from '../../hooks/useCall';
 import { colors, getSectionColors } from '../../styles/colors';
 
 const MainLayout = () => {
   const location = useLocation();
   const { user } = useAuthStore();
+  const { activeCall, isCallModalOpen, endCall } = useCall();
   const [isMobile, setIsMobile] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -89,6 +92,17 @@ const MainLayout = () => {
           <Outlet />
         </div>
       </div>
+
+      {/* Video Call Modal */}
+      {isCallModalOpen && activeCall && (
+        <VideoCall
+          callId={activeCall.callId}
+          isIncoming={activeCall.isIncoming}
+          otherParty={activeCall.otherParty}
+          callType={activeCall.callType}
+          onCallEnd={endCall}
+        />
+      )}
     </div>
   );
 };
