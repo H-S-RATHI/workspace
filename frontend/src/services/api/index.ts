@@ -80,6 +80,7 @@ export const discoverAPI = discover.discoverAPI;
 
 // Export the API instance
 export { api };
+export { api as apiClient }; // For backward compatibility
 
 // Default export is the API instance
 export default api;
