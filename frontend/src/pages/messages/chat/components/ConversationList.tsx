@@ -9,15 +9,37 @@ export const ConversationList = () => {
     fetchConversations, 
     selectConversation,
     searchUsers,
-    createConversation
+    createConversation,
+    isLoading,
+    error
   } = useChatStore()
   
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
+  const [isRetrying, setIsRetrying] = useState(false)
   
-  // Fetch conversations on mount
+  // Fetch conversations on mount with error handling
   useEffect(() => {
-    fetchConversations()
+    const loadConversations = async () => {
+      try {
+        await fetchConversations();
+      } catch (error) {
+        // Error is already handled in the store
+        console.log('Failed to load conversations, will retry...');
+      }
+    };
+    
+    loadConversations();
+    
+    // Set up polling to retry failed requests
+    const pollInterval = setInterval(() => {
+      const { isLoading, error } = useChatStore.getState();
+      if (error && !isLoading) {
+        loadConversations();
+      }
+    }, 10000); // Retry every 10 seconds if there's an error
+    
+    return () => clearInterval(pollInterval);
   }, [fetchConversations])
   
   // Handle search
@@ -110,9 +132,51 @@ export const ConversationList = () => {
         </div>
       )}
       
+      {/* Error state */}
+      {error && (
+        <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg text-red-600 dark:text-red-400 text-sm flex items-center justify-between">
+          <span>{error}</span>
+          <button 
+            onClick={async () => {
+              setIsRetrying(true);
+              try {
+                await fetchConversations();
+              } finally {
+                setIsRetrying(false);
+              }
+            }}
+            disabled={isLoading || isRetrying}
+            className="ml-2 px-3 py-1 bg-white dark:bg-gray-800 border border-red-200 dark:border-red-800 rounded-md text-xs font-medium hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors disabled:opacity-50"
+          >
+            {isRetrying ? 'Retrying...' : 'Retry'}
+          </button>
+        </div>
+      )}
+      
+      {/* Loading state */}
+      {isLoading && conversations.length === 0 && (
+        <div className="mt-4 space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="p-3 rounded-lg bg-gray-100 dark:bg-gray-800 animate-pulse">
+              <div className="flex items-center">
+                <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700"></div>
+                <div className="ml-3 space-y-2">
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32"></div>
+                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      
       {/* Conversations list */}
       <div className="flex-1 overflow-y-auto">
-        {conversations.length === 0 ? (
+        {!isLoading && error && conversations.length === 0 ? (
+          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+            Failed to load conversations. Please try again later.
+          </div>
+        ) : conversations.length === 0 ? (
           <div className="p-6 text-center">
             <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Search className="w-8 h-8 text-blue-500" />

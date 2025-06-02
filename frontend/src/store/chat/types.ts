@@ -6,6 +6,9 @@ export interface ChatState {
   isLoading: boolean
   isSending: boolean
   error: string | null
+  lastFetchAttempt?: number
+  lastFetchTime?: number
+  lastFetchSuccess?: boolean
 }
 export interface ChatActions {
   // Conversations

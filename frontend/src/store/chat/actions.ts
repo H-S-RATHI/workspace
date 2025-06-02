@@ -13,19 +13,42 @@ export const createConversationActions = (
   set: (partial: Partial<ChatStore> | ((state: ChatStore) => Partial<ChatStore>)) => void,
   get: () => ChatStore
 ) => ({
-  // Fetch all conversations for the current user
+  // Fetch all conversations for the current user with retry logic
   fetchConversations: async () => {
-    set({ isLoading: true, error: null })
+    set({
+      isLoading: true,
+      error: null,
+      lastFetchAttempt: Date.now()
+    });
+    
     try {
       const response = await chatAPI.getConversations()
-      if (response.success) {
-        set({ conversations: response.conversations })
+      
+      if (response?.success) {
+        const update = {
+          conversations: response.conversations,
+          lastFetchTime: Date.now(),
+          lastFetchSuccess: true
+        };
+        set(update);
+        return;
       }
+      
+      throw new Error('Failed to load conversations');
     } catch (error: any) {
-      set({ error: error.message || 'Failed to load conversations' })
-      console.error('Error fetching conversations:', error)
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to load conversations';
+      console.error('Error fetching conversations:', error);
+      
+      // Only update error state
+      set({
+        error: errorMessage,
+        lastFetchSuccess: false
+      });
+      
+      // Re-throw to allow components to handle the error if needed
+      throw error;
     } finally {
-      set({ isLoading: false })
+      set({ isLoading: false });
     }
   },
   // Create a new conversation
