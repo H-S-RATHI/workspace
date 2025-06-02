@@ -4,14 +4,13 @@ import {
   X, 
   Camera, 
   Type, 
-  Palette, 
   Users, 
   Globe, 
   UserCheck, 
   Lock,
-  AtSign,
   Send
 } from 'lucide-react';
+import { statusService } from '../../services/statusService';
 
 interface StatusCreatorProps {
   isOpen: boolean;
@@ -40,7 +39,6 @@ const StatusCreator: React.FC<StatusCreatorProps> = ({
   const [textColor, setTextColor] = useState('#ffffff');
   const [privacy, setPrivacy] = useState<'PUBLIC' | 'CONTACTS' | 'CLOSE_FRIENDS' | 'CUSTOM'>('CONTACTS');
   const [mentionedUsers, setMentionedUsers] = useState<string[]>([]);
-  const [mentionQuery, setMentionQuery] = useState('');
   const [showMentions, setShowMentions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -69,13 +67,12 @@ const StatusCreator: React.FC<StatusCreatorProps> = ({
     const lastAtIndex = text.lastIndexOf('@');
     if (lastAtIndex !== -1 && lastAtIndex === text.length - 1) {
       setShowMentions(true);
-      setMentionQuery('');
     } else if (lastAtIndex !== -1) {
       const query = text.slice(lastAtIndex + 1);
       if (query.includes(' ')) {
         setShowMentions(false);
       } else {
-        setMentionQuery(query);
+        // TODO: Handle user mention query
         setShowMentions(true);
       }
     } else {
@@ -96,17 +93,29 @@ const StatusCreator: React.FC<StatusCreatorProps> = ({
         console.log('Uploading file:', mediaFile);
       }
 
-      const statusData = {
+      // Prepare status data according to backend expectations
+      const statusData: any = {
         content: content.trim() || undefined,
-        mediaUrl,
         mediaType,
-        backgroundColor,
-        textColor,
         privacy,
-        mentionedUsers,
+        ...(mediaUrl && { mediaUrl }),
+        ...(backgroundColor && { backgroundColor }),
+        ...(textColor && { textColor }),
+        ...(mentionedUsers?.length > 0 && { mentionedUsers })
       };
+      
+      // Remove undefined values
+      Object.keys(statusData).forEach(key => 
+        statusData[key] === undefined && delete statusData[key]
+      );
 
-      await onCreateStatus(statusData);
+      // Use the statusService to create the status
+      await statusService.createStatus(statusData);
+      
+      // Call the parent's callback if provided
+      if (onCreateStatus) {
+        await onCreateStatus(statusData);
+      }
       
       // Reset form
       setContent('');
@@ -115,8 +124,16 @@ const StatusCreator: React.FC<StatusCreatorProps> = ({
       setMediaType('TEXT');
       setMentionedUsers([]);
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create status:', error);
+      // Show error message from the server if available
+      const errorMessage = error.response?.data?.message || 'Failed to create status. Please try again.';
+      alert(errorMessage);
+      console.error('Error details:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        config: error.config
+      });
     } finally {
       setIsLoading(false);
     }

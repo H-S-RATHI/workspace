@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useLocation, Routes, Route } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore'
 import { ConversationList } from '../../components/chat/ConversationList'
 import { ChatWindow } from '../../components/chat/ChatWindow'
@@ -7,13 +7,11 @@ import { ArrowLeft, Search, Plus, Phone, Video, MoreVertical, Camera, Eye, Clock
 import { useChatStore } from '../../store/chatStore'
 import StatusViewer from '../../components/status/StatusViewer'
 import StatusCreator from '../../components/status/StatusCreator'
-import { colors } from '../../styles/colors'
 
 // Mobile Conversation List Component
 const MobileConversationList = ({ onSelectConversation }: { onSelectConversation: () => void }) => {
   const { 
     conversations, 
-    currentConversation, 
     fetchConversations, 
     selectConversation,
     searchUsers,
@@ -421,16 +419,26 @@ const StatusTab = () => {
 
   const fetchStatuses = async () => {
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch('/api/v1/status/feed', {
+      const { accessToken } = useAuthStore.getState()
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/status/feed`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
         },
       })
       
       if (response.ok) {
         const data = await response.json()
         setStatuses(data.statuses || [])
+      } else if (response.status === 401) {
+        // Token might be expired, try to refresh
+        const refreshed = await useAuthStore.getState().refreshAccessToken()
+        if (refreshed) {
+          // Retry the request with new token
+          return fetchStatuses()
+        } else {
+          useAuthStore.getState().logout()
+        }
       }
     } catch (error) {
       console.error('Failed to fetch statuses:', error)
@@ -441,16 +449,26 @@ const StatusTab = () => {
 
   const fetchMyStatuses = async () => {
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch('/api/v1/status/my-statuses', {
+      const { accessToken } = useAuthStore.getState()
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/status/my-statuses`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
         },
       })
       
       if (response.ok) {
         const data = await response.json()
         setMyStatuses(data.statuses || [])
+      } else if (response.status === 401) {
+        // Token might be expired, try to refresh
+        const refreshed = await useAuthStore.getState().refreshAccessToken()
+        if (refreshed) {
+          // Retry the request with new token
+          return fetchMyStatuses()
+        } else {
+          useAuthStore.getState().logout()
+        }
       }
     } catch (error) {
       console.error('Failed to fetch my statuses:', error)
@@ -459,12 +477,12 @@ const StatusTab = () => {
 
   const handleCreateStatus = async (statusData: any) => {
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch('/api/v1/status', {
+      const { accessToken } = useAuthStore.getState()
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/status`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${accessToken}`,
         },
         body: JSON.stringify(statusData),
       })
@@ -472,6 +490,13 @@ const StatusTab = () => {
       if (response.ok) {
         await fetchMyStatuses()
         await fetchStatuses()
+      } else if (response.status === 401) {
+        const refreshed = await useAuthStore.getState().refreshAccessToken()
+        if (refreshed) {
+          return handleCreateStatus(statusData)
+        } else {
+          useAuthStore.getState().logout()
+        }
       }
     } catch (error) {
       console.error('Failed to create status:', error)
@@ -480,13 +505,23 @@ const StatusTab = () => {
 
   const handleViewStatus = async (statusId: string) => {
     try {
-      const token = localStorage.getItem('token')
-      await fetch(`/api/v1/status/${statusId}/view`, {
+      const { accessToken } = useAuthStore.getState()
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/status/${statusId}/view`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
         },
       })
+      
+      if (response.status === 401) {
+        const refreshed = await useAuthStore.getState().refreshAccessToken()
+        if (refreshed) {
+          return handleViewStatus(statusId)
+        } else {
+          useAuthStore.getState().logout()
+        }
+      }
     } catch (error) {
       console.error('Failed to mark status as viewed:', error)
     }
@@ -590,8 +625,8 @@ const StatusTab = () => {
                 
                 {isLoading ? (
                   <div className="space-y-4">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="flex items-center space-x-4 p-3">
+                    {[1, 2, 3].map((_, index) => (
+                      <div key={index} className="flex items-center space-x-4 p-3">
                         <div className="w-12 h-12 bg-gray-200 rounded-full animate-pulse"></div>
                         <div className="flex-1 space-y-2">
                           <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
