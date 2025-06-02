@@ -15,6 +15,7 @@ const chatRoutes = require('./routes/chat');
 const marketplaceRoutes = require('./routes/marketplace');
 const discoverRoutes = require('./routes/discover');
 const profileRoutes = require('./routes/profile');
+const statusRoutes = require('./routes/status');
 const { initializeSocket } = require('./websocket/socketHandler');
 const errorHandler = require('./middleware/errorHandler');
 const { logger } = require('./utils/logger');
@@ -136,6 +137,7 @@ app.use(`/api/${apiVersion}/chat`, chatRoutes);
 app.use(`/api/${apiVersion}/marketplace`, marketplaceRoutes);
 app.use(`/api/${apiVersion}/discover`, discoverRoutes);
 app.use(`/api/${apiVersion}/profile`, profileRoutes);
+app.use(`/api/${apiVersion}/status`, statusRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
