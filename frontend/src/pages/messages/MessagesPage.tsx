@@ -3,8 +3,11 @@ import { useNavigate, useLocation, Routes, Route } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { ConversationList } from '../../components/chat/ConversationList'
 import { ChatWindow } from '../../components/chat/ChatWindow'
-import { ArrowLeft, Search, Plus, Phone, Video, MoreVertical } from 'lucide-react'
+import { ArrowLeft, Search, Plus, Phone, Video, MoreVertical, Camera, Eye, Clock } from 'lucide-react'
 import { useChatStore } from '../../store/chatStore'
+import StatusViewer from '../../components/status/StatusViewer'
+import StatusCreator from '../../components/status/StatusCreator'
+import { colors } from '../../styles/colors'
 
 // Mobile Conversation List Component
 const MobileConversationList = ({ onSelectConversation }: { onSelectConversation: () => void }) => {
