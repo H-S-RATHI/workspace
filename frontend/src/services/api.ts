@@ -1,10 +1,9 @@
-import axios, { AxiosInstance, AxiosRequestConfig } from 'axios'
+import axios, { AxiosInstance } from 'axios'
 import toast from 'react-hot-toast'
 
 import { useAuthStore } from '../store/authStore'
 import type { 
   LoginCredentials, 
-  SignupData, 
   OTPVerificationData, 
   AuthResponse, 
   OTPResponse,
@@ -43,21 +42,27 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config
     
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Prevent infinite loops by checking if this is already a retry or a refresh token request
+    if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url.includes('auth/refresh-token')) {
       originalRequest._retry = true
       
       const { refreshAccessToken, logout } = useAuthStore.getState()
       
       try {
-        const refreshed = await refreshAccessToken()
+        // Try to refresh the token
+        const success = await refreshAccessToken()
         
-        if (refreshed) {
+        if (success) {
+          // Update the auth header with the new token
           const { accessToken } = useAuthStore.getState()
-          originalRequest.headers.Authorization = `Bearer ${accessToken}`
+          if (accessToken) {
+            originalRequest.headers.Authorization = `Bearer ${accessToken}`
+          }
+          // Retry the original request
           return api(originalRequest)
         } else {
           logout()
-          return Promise.reject(error)
+          return Promise.reject(new Error('Session expired. Please log in again.'))
         }
       } catch (refreshError) {
         logout()
