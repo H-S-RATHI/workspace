@@ -82,11 +82,11 @@ const MessageBubble = ({
     >
       <div 
         className={cn(
-          'max-w-xs md:max-w-md lg:max-w-lg px-4 py-2 rounded-2xl relative',
+          'max-w-xs md:max-w-md lg:max-w-lg px-4 py-3 rounded-2xl relative',
           isCurrentUser 
-            ? 'bg-blue-500 text-white rounded-br-none' 
-            : 'bg-gray-100 text-gray-800 rounded-bl-none',
-          'hover:shadow-md transition-shadow duration-200'
+            ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-br-md shadow-md' 
+            : 'bg-white text-gray-800 rounded-bl-md shadow-sm border border-gray-100',
+          'hover:shadow-lg transition-all duration-200'
         )}
         onMouseEnter={() => setShowTime(true)}
         onMouseLeave={() => setShowTime(false)}
@@ -278,33 +278,35 @@ export const ChatWindow = () => {
   }, {}) || {};
   
   return (
-    <div className="flex-1 flex flex-col h-full bg-white dark:bg-gray-900">
+    <div className="flex-1 flex flex-col h-full bg-gradient-to-b from-blue-50/30 to-white">
       {/* Chat header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-medium">
-            {getInitials(currentConversation.displayName || '')}
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white font-medium">
+              {getInitials(currentConversation.displayName || '')}
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg">{currentConversation.displayName}</h3>
+              <p className="text-xs text-white/80">
+                {isTyping ? 'typing...' : 'Online'}
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-medium text-gray-900 dark:text-white">{currentConversation.displayName}</h3>
-            <p className="text-xs text-gray-500">
-              {isTyping ? 'typing...' : 'Online'}
-            </p>
+          <div className="flex items-center space-x-2">
+            <button className="p-2 hover:bg-white/20 rounded-full transition-colors">
+              <Phone className="w-5 h-5" />
+            </button>
+            <button className="p-2 hover:bg-white/20 rounded-full transition-colors">
+              <Video className="w-5 h-5" />
+            </button>
+            <button className="p-2 hover:bg-white/20 rounded-full transition-colors">
+              <Search className="w-5 h-5" />
+            </button>
+            <button className="p-2 hover:bg-white/20 rounded-full transition-colors">
+              <MoreVertical className="w-5 h-5" />
+            </button>
           </div>
-        </div>
-        <div className="flex items-center space-x-4">
-          <button className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-            <Phone className="w-5 h-5" />
-          </button>
-          <button className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-            <Video className="w-5 h-5" />
-          </button>
-          <button className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-            <Search className="w-5 h-5" />
-          </button>
-          <button className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-            <MoreVertical className="w-5 h-5" />
-          </button>
         </div>
       </div>
       
@@ -345,15 +347,15 @@ export const ChatWindow = () => {
       </div>
       
       {/* Message input */}
-      <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-800">
+      <div className="border-t border-gray-200 p-4 bg-white">
         <form 
           ref={formRef}
           onSubmit={handleSendMessage}
-          className="flex items-end space-x-2"
+          className="flex items-end space-x-3"
         >
           <button 
             type="button" 
-            className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className="p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors"
             onClick={() => fileInputRef.current?.click()}
           >
             <Paperclip className="w-5 h-5" />
@@ -371,12 +373,12 @@ export const ChatWindow = () => {
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Type a message..."
-              className="w-full min-h-[40px] max-h-32 px-4 py-2 pr-12 bg-gray-100 dark:bg-gray-700 dark:text-white rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-gray-600 resize-none"
+              className="w-full min-h-[44px] max-h-32 px-4 py-3 pr-12 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all resize-none"
               rows={1}
             />
             <button 
               type="button" 
-              className="absolute right-2 bottom-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              className="absolute right-3 bottom-3 text-gray-500 hover:text-gray-700 transition-colors"
               onClick={toggleEmojiPicker}
             >
               <Smile className="w-5 h-5" />
@@ -386,7 +388,7 @@ export const ChatWindow = () => {
           <button 
             type="submit" 
             disabled={!message.trim() || isSending}
-            className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="p-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
           >
             <Send className="w-5 h-5" />
           </button>
