@@ -167,7 +167,11 @@ export const PostCard = ({
   likes = 0,
   comments = 0,
   timestamp,
-  className
+  className,
+  isLiked = false,
+  onLike,
+  onComment,
+  onShare
 }: PostCardProps) => {
   return (
     <Card className={clsx('overflow-hidden', className)}>
@@ -204,16 +208,28 @@ export const PostCard = ({
         
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <button className="flex items-center space-x-1 text-gray-500 hover:text-red-500 transition-colors">
-              <span className="text-lg">♡</span>
+            <button 
+              onClick={onLike}
+              className={clsx(
+                "flex items-center space-x-1 transition-colors",
+                isLiked ? "text-red-500" : "text-gray-500 hover:text-red-500"
+              )}
+            >
+              <span className="text-lg">{isLiked ? '❤️' : '♡'}</span>
               <span className="text-sm">{likes}</span>
             </button>
-            <button className="flex items-center space-x-1 text-gray-500 hover:text-blue-500 transition-colors">
+            <button 
+              onClick={onComment}
+              className="flex items-center space-x-1 text-gray-500 hover:text-blue-500 transition-colors"
+            >
               <span className="text-lg">💬</span>
               <span className="text-sm">{comments}</span>
             </button>
           </div>
-          <button className="text-gray-500 hover:text-gray-700 transition-colors">
+          <button 
+            onClick={onShare}
+            className="text-gray-500 hover:text-gray-700 transition-colors"
+          >
             <span className="text-lg">📤</span>
           </button>
         </div>

@@ -1,70 +1,136 @@
 import { useLocation } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import { PostCard } from '../../components/ui/Card'
 import Input from '../../components/ui/Input'
+import { discoverService, type Post } from '../../services/discoverService'
 
 // Feed Tab - Card-based infinite scroll
-const FeedTab = () => (
-  <div className="h-full overflow-y-auto bg-gray-50">
-    <div className="max-w-2xl mx-auto p-6">
-      {/* Toggle: Following vs For You */}
-      <div className="flex bg-white rounded-xl p-1 mb-6 shadow-sm border border-gray-100">
-        <button className="flex-1 py-3 px-4 rounded-lg text-sm font-medium bg-blue-600 text-white shadow-sm">
-          For You
-        </button>
-        <button className="flex-1 py-3 px-4 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50">
-          Following
-        </button>
-      </div>
+const FeedTab = () => {
+  const [posts, setPosts] = useState<Post[]>([])
+  const [loading, setLoading] = useState(true)
+  const [feedType, setFeedType] = useState<'for-you' | 'following'>('for-you')
 
-      <div className="space-y-6">
-        {/* Sample Posts using PostCard component */}
-        {[
-          {
-            avatar: '/api/placeholder/36/36',
-            name: 'Sarah Johnson',
-            username: 'sarahj',
-            media: '/api/placeholder/400/320',
-            caption: 'Just discovered this amazing coffee shop downtown! ☕️ The atmosphere is perfect for working.',
-            likes: 24,
-            comments: 5,
-            timestamp: '2h'
-          },
-          {
-            avatar: '/api/placeholder/36/36',
-            name: 'Mike Chen',
-            username: 'mikec',
-            media: '/api/placeholder/400/400',
-            caption: 'Beautiful sunset from my balcony tonight 🌅 #photography #sunset',
-            likes: 89,
-            comments: 12,
-            timestamp: '4h'
-          },
-          {
-            avatar: '/api/placeholder/36/36',
-            name: 'Emma Wilson',
-            username: 'emmaw',
-            caption: 'Excited to announce my new project launch! 🚀 Thanks to everyone who supported me.',
-            likes: 156,
-            comments: 23,
-            timestamp: '6h'
-          },
-          {
-            avatar: '/api/placeholder/36/36',
-            name: 'Alex Thompson',
-            username: 'alexthompson',
-            media: '/api/placeholder/400/300',
-            caption: 'Weekend hiking adventure in the mountains! 🏔️ Nature never fails to amaze me.',
-            likes: 67,
-            comments: 8,
-            timestamp: '8h'
-          }
-        ].map((post, index) => (
-          <PostCard key={index} {...post} />
-        ))}
+  useEffect(() => {
+    loadPosts()
+  }, [feedType])
+
+  const loadPosts = async () => {
+    try {
+      setLoading(true)
+      const response = feedType === 'following' 
+        ? await discoverService.getFollowingFeed()
+        : await discoverService.getFeed()
+      setPosts(response.posts || [])
+    } catch (error) {
+      console.error('Error loading posts:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleLike = async (postId: string) => {
+    try {
+      await discoverService.likePost(postId)
+      setPosts(prev => prev.map(post => 
+        post.postId === postId 
+          ? { 
+              ...post, 
+              isLiked: !post.isLiked,
+              likes: post.isLiked ? post.likes - 1 : post.likes + 1
+            }
+          : post
+      ))
+    } catch (error) {
+      console.error('Error liking post:', error)
+    }
+  }
+
+  const handleComment = (postId: string) => {
+    // TODO: Open comment modal or navigate to post detail
+    console.log('Comment on post:', postId)
+  }
+
+  const handleShare = (postId: string) => {
+    // TODO: Implement share functionality
+    console.log('Share post:', postId)
+  }
+
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp)
+    const now = new Date()
+    const diff = now.getTime() - date.getTime()
+    const hours = Math.floor(diff / (1000 * 60 * 60))
+    const days = Math.floor(hours / 24)
+    
+    if (days > 0) return `${days}d`
+    if (hours > 0) return `${hours}h`
+    return 'now'
+  }
+
+  return (
+    <div className="h-full overflow-y-auto bg-gray-50">
+      <div className="max-w-2xl mx-auto p-6">
+        {/* Toggle: Following vs For You */}
+        <div className="flex bg-white rounded-xl p-1 mb-6 shadow-sm border border-gray-100">
+          <button 
+            onClick={() => setFeedType('for-you')}
+            className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-colors ${
+              feedType === 'for-you' 
+                ? 'bg-blue-600 text-white shadow-sm' 
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+            }`}
+          >
+            For You
+          </button>
+          <button 
+            onClick={() => setFeedType('following')}
+            className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-colors ${
+              feedType === 'following' 
+                ? 'bg-blue-600 text-white shadow-sm' 
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+            }`}
+          >
+            Following
+          </button>
+        </div>
+
+        <div className="space-y-6">
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="text-gray-500 mt-2">Loading posts...</p>
+            </div>
+          ) : posts.length > 0 ? (
+            posts.map((post) => (
+              <PostCard 
+                key={post.postId}
+                avatar={post.profilePhotoUrl || '/api/placeholder/36/36'}
+                name={post.fullName}
+                username={post.username}
+                media={post.mediaUrl}
+                caption={post.content || ''}
+                likes={post.likes}
+                comments={post.comments}
+                timestamp={formatTimestamp(post.createdAt)}
+                isLiked={post.isLiked}
+                onLike={() => handleLike(post.postId)}
+                onComment={() => handleComment(post.postId)}
+                onShare={() => handleShare(post.postId)}
+              />
+            ))
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-500">No posts to show</p>
+              <p className="text-sm text-gray-400 mt-1">
+                {feedType === 'following' ? 'Follow some users to see their posts here' : 'Check back later for new content'}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
-  </div>
-)
+  )
+}
 
 const ReelsTab = () => (
   <div className="h-full overflow-y-auto bg-gray-50">
