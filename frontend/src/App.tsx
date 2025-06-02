@@ -20,7 +20,7 @@ import MarketplacePage from './pages/marketplace/MarketplacePage'
 import ProfilePage from './pages/profile/ProfilePage'
 
 // Protected Route Component
-import ProtectedRoute from './components/auth/ProtectedRoute'
+import ProtectedRoute from './pages/auth/components/ProtectedRoute'
 
 function App() {
   const { user, isLoading, checkAuth } = useAuthStore()
