@@ -27,9 +27,9 @@ const tabs = [
     label: 'Messages',
     icon: MessageCircle,
     path: '/messages',
-    description: 'Chat, calls & stories',
+    description: 'Chat, calls & status',
     subItems: [
-      { label: 'Chat', icon: MessageCircle, path: '/messages/chat' },
+      { label: 'Chat', icon: MessageCircle, path: '/messages' },
       { label: 'Calls', icon: Video, path: '/messages/calls' },
       { label: 'Status', icon: Zap, path: '/messages/status' }
     ]
@@ -39,9 +39,9 @@ const tabs = [
     label: 'Discover',
     icon: Compass,
     path: '/discover',
-    description: 'Explore content',
+    description: 'Feed, reels & search',
     subItems: [
-      { label: 'Feed', icon: Compass, path: '/discover/feed' },
+      { label: 'Feed', icon: Compass, path: '/discover' },
       { label: 'Reels', icon: Film, path: '/discover/reels' },
       { label: 'Search', icon: Search, path: '/discover/search' }
     ]
@@ -51,9 +51,9 @@ const tabs = [
     label: 'Marketplace',
     icon: ShoppingBag,
     path: '/marketplace',
-    description: 'Shop & sell',
+    description: 'Shop, sell & deals',
     subItems: [
-      { label: 'Shop', icon: ShoppingBag, path: '/marketplace/shop' },
+      { label: 'Shop', icon: ShoppingBag, path: '/marketplace' },
       { label: 'Sell', icon: Tag, path: '/marketplace/sell' },
       { label: 'Deals', icon: Gift, path: '/marketplace/deals' }
     ]
@@ -63,11 +63,11 @@ const tabs = [
     label: 'Profile',
     icon: User,
     path: '/profile',
-    description: 'Account & settings',
+    description: 'Profile, settings & tools',
     subItems: [
       { label: 'Profile', icon: User, path: '/profile' },
       { label: 'Settings', icon: Settings, path: '/profile/settings' },
-      { label: 'Analytics', icon: BarChart2, path: '/profile/analytics' }
+      { label: 'Tools', icon: BarChart2, path: '/profile/tools' }
     ]
   },
 ];
@@ -98,7 +98,7 @@ const DesktopSidebar = ({}: DesktopSidebarProps) => {
   }, [location.pathname]);
 
   return (
-    <div className="h-full flex flex-col bg-white border-r border-gray-100 w-64">
+    <div className="h-full flex flex-col bg-white border-r border-gray-100 w-[200px]">
       {/* Logo/Brand */}
       <div className="p-6 pb-2">
         <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">

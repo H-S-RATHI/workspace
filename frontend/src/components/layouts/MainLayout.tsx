@@ -105,29 +105,27 @@ const MainLayout = () => {
     );
   }
 
-  // Desktop Layout
+  // Desktop Layout - Three-pane layout as specified
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Top Global Bar */}
       <TopBar user={user} />
       
       <div className="flex pt-16 h-[calc(100vh-4rem)]">
-        {/* Left Sidebar - Fixed */}
+        {/* Left Sidebar - Fixed 200px width as specified */}
         <div className="hidden lg:flex lg:flex-shrink-0">
-          <div className="w-64 border-r border-gray-200 bg-white overflow-y-auto">
+          <div className="w-[200px] border-r border-gray-200 bg-white overflow-y-auto">
             <DesktopSidebar />
           </div>
         </div>
         
-        {/* Main Content */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <Outlet />
-          </div>
+        {/* Main Content - Flexible width, responsive */}
+        <div className="flex-1 overflow-y-auto bg-white">
+          <Outlet />
         </div>
         
-        {/* Right Panel (Chat/Context) - Hidden on smaller screens */}
-        <div className="hidden xl:block xl:flex-shrink-0 w-80 border-l border-gray-200 bg-white overflow-y-auto">
+        {/* Right Panel - 300px width as specified */}
+        <div className="hidden xl:block xl:flex-shrink-0 w-[300px] border-l border-gray-200 bg-white overflow-y-auto">
           <div className="p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Activity
