@@ -11,16 +11,11 @@ const MainLayout = () => {
   const location = useLocation();
   const { user } = useAuthStore();
   const [isMobile, setIsMobile] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const checkMobile = useCallback(() => {
-    const mobile = window.innerWidth < 1024; // Using 1024px as the breakpoint for desktop
+    const mobile = window.innerWidth < 1024;
     setIsMobile(mobile);
-    
-    // Close mobile menu when resizing to desktop
-    if (!mobile) {
-      setIsMobileMenuOpen(false);
-    }
   }, []);
 
   useEffect(() => {
@@ -36,113 +31,41 @@ const MainLayout = () => {
   }, [location.pathname]);
 
   const currentTab = getCurrentTab();
-  const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
-
-  // Close mobile menu when route changes
-  useEffect(() => {
-    if (isMobile) {
-      setIsMobileMenuOpen(false);
-    }
-  }, [location.pathname, isMobile]);
 
   if (isMobile) {
     return (
       <div className="h-screen flex flex-col bg-gray-50">
-        {/* Top Bar with Menu Toggle */}
-        <div className="sticky top-0 z-50 bg-white border-b border-gray-200">
-          <div className="h-16 flex items-center px-4">
-            <button 
-              onClick={toggleMobileMenu}
-              className="p-2 text-gray-500 hover:text-gray-700 focus:outline-none"
-              aria-label="Toggle menu"
-            >
-              {isMobileMenuOpen ? (
-                <span className="text-2xl">×</span>
-              ) : (
-                <span className="text-2xl">☰</span>
-              )}
-            </button>
-            <h1 className="ml-3 text-xl font-bold text-gray-900">
-              {currentTab.charAt(0).toUpperCase() + currentTab.slice(1)}
-            </h1>
-          </div>
-        </div>
-
-        {/* Mobile Sidebar Overlay */}
-        <AnimatePresence>
-          {isMobileMenuOpen && (
-            <>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black bg-opacity-50 z-40"
-                onClick={toggleMobileMenu}
-              />
-              <motion.div
-                initial={{ x: '-100%' }}
-                animate={{ x: 0 }}
-                exit={{ x: '-100%' }}
-                transition={{ type: 'tween' }}
-                className="fixed inset-y-0 left-0 w-64 bg-white z-50 shadow-lg"
-              >
-                <DesktopSidebar />
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
+        {/* Top Bar with Sub-tabs */}
+        <TopBar currentTab={currentTab} isMobile={true} />
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-hidden">
           <Outlet />
         </div>
 
         {/* Bottom Navigation */}
-        <div className="sticky bottom-0 bg-white border-t border-gray-200">
-          <MobileNavigation />
-        </div>
+        <MobileNavigation />
       </div>
     );
   }
 
-  // Desktop Layout - Three-pane layout as specified
+  // Desktop Layout
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Top Global Bar */}
-      <TopBar user={user} />
+    <div className="h-screen flex bg-gray-50">
+      {/* Left Sidebar */}
+      <DesktopSidebar 
+        collapsed={sidebarCollapsed} 
+        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+      />
       
-      <div className="flex pt-16 h-[calc(100vh-4rem)]">
-        {/* Left Sidebar - Fixed 200px width as specified */}
-        <div className="hidden lg:flex lg:flex-shrink-0">
-          <div className="w-[200px] border-r border-gray-200 bg-white overflow-y-auto">
-            <DesktopSidebar />
-          </div>
-        </div>
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Top Bar with Sub-tabs */}
+        <TopBar currentTab={currentTab} isMobile={false} />
         
-        {/* Main Content - Flexible width, responsive */}
-        <div className="flex-1 overflow-y-auto bg-white">
+        {/* Content */}
+        <div className="flex-1 overflow-hidden">
           <Outlet />
-        </div>
-        
-        {/* Right Panel - 300px width as specified */}
-        <div className="hidden xl:block xl:flex-shrink-0 w-[300px] border-l border-gray-200 bg-white overflow-y-auto">
-          <div className="p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Activity
-            </h3>
-            <div className="space-y-4">
-              {[1, 2, 3].map((item) => (
-                <div key={item} className="p-3 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-600">
-                    Sample activity item {item}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    {item} hour{item !== 1 ? 's' : ''} ago
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
     </div>
