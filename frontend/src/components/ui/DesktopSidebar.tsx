@@ -1,11 +1,10 @@
-import { Link } from 'react-router-dom'
-import { MessageCircle, Compass, ShoppingBag, User } from 'lucide-react'
-import { motion } from 'framer-motion'
-import { clsx } from 'clsx'
+import { Link, useLocation } from 'react-router-dom';
+import { MessageCircle, Compass, ShoppingBag, User, LogOut } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { clsx } from 'clsx';
+import { useAuthStore } from '../../store/authStore';
 
-interface DesktopSidebarProps {
-  currentTab: string
-}
+interface DesktopSidebarProps {}
 
 const tabs = [
   {
@@ -36,76 +35,76 @@ const tabs = [
     path: '/profile',
     description: 'Your account',
   },
-]
+];
 
-const DesktopSidebar = ({ currentTab }: DesktopSidebarProps) => {
+const DesktopSidebar = ({}: DesktopSidebarProps) => {
+  const { handleLogout } = useAuthStore();
+  const location = useLocation();
+  
+  const isTabActive = (path: string) => location.pathname.startsWith(path);
+
   return (
-    <div className="h-full flex flex-col p-4">
-      <nav className="flex-1">
-        <ul className="space-y-2">
+    <div className="h-full flex flex-col bg-white border-r border-gray-100 w-64">
+      {/* Logo/Brand */}
+      <div className="p-6 pb-2">
+        <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          SocialApp
+        </h1>
+      </div>
+      
+      {/* Navigation */}
+      <nav className="flex-1 px-3 py-4">
+        <ul className="space-y-1">
           {tabs.map((tab) => {
-            const Icon = tab.icon
-            const isActive = currentTab === tab.id
+            const Icon = tab.icon;
+            const active = isTabActive(tab.path);
             
             return (
               <li key={tab.id}>
                 <Link
                   to={tab.path}
                   className={clsx(
-                    'flex items-center p-3 rounded-lg transition-colors relative group',
-                    isActive
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                    'flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-colors',
+                    active
+                      ? 'bg-blue-50 text-blue-700'
+                      : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                   )}
                 >
-                  {isActive && (
-                    <motion.div
-                      layoutId="desktop-tab-indicator"
-                      className="absolute left-0 top-0 bottom-0 w-1 bg-primary-600 rounded-r"
-                      initial={false}
-                      transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-                    />
-                  )}
-                  
                   <Icon 
-                    size={20} 
                     className={clsx(
-                      'mr-3',
-                      isActive ? 'text-primary-600' : 'text-gray-500 group-hover:text-gray-700'
+                      'w-5 h-5 mr-3',
+                      active ? 'text-blue-600' : 'text-gray-500 group-hover:text-gray-700'
                     )} 
                   />
-                  
-                  <div className="flex-1">
-                    <div className={clsx(
-                      'font-medium',
-                      isActive ? 'text-primary-900' : 'text-gray-900'
-                    )}>
-                      {tab.label}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      {tab.description}
-                    </div>
-                  </div>
-                  
-                  {/* Notification Badge */}
-                  {tab.id === 'messages' && (
-                    <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
-                      <span className="text-xs text-white font-bold">3</span>
-                    </div>
+                  <span>{tab.label}</span>
+                  {active && (
+                    <motion.span
+                      layoutId="activeTab"
+                      className="absolute right-4 w-1.5 h-6 bg-blue-600 rounded-full"
+                      initial={false}
+                      transition={{
+                        type: 'spring',
+                        stiffness: 500,
+                        damping: 30,
+                      }}
+                    />
                   )}
                 </Link>
               </li>
-            )
+            );
           })}
         </ul>
       </nav>
       
-      {/* Footer */}
-      <div className="pt-4 border-t border-gray-200">
-        <div className="text-xs text-gray-500 text-center">
-          <p>Social Marketplace v1.0</p>
-          <p className="mt-1">© 2025 OpenHands</p>
-        </div>
+      {/* User & Logout */}
+      <div className="p-4 border-t border-gray-100">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center px-4 py-2 text-sm font-medium text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+        >
+          <LogOut className="w-5 h-5 mr-3" />
+          <span>Log out</span>
+        </button>
       </div>
     </div>
   )
