@@ -85,29 +85,51 @@ const StatusCreator: React.FC<StatusCreatorProps> = ({
 
     setIsLoading(true);
     try {
-      let mediaUrl = null;
+      let mediaUrl: string | null = null;
       
       // TODO: Upload media file if present
       if (mediaFile) {
         // Implement file upload logic here
         console.log('Uploading file:', mediaFile);
+        // For now, we'll use a placeholder URL
+        mediaUrl = URL.createObjectURL(mediaFile);
       }
 
       // Prepare status data according to backend expectations
-      const statusData: any = {
-        content: content.trim() || undefined,
+      const statusData: {
+        content?: string;
+        mediaUrl?: string | null;
+        mediaType: 'TEXT' | 'IMAGE' | 'VIDEO';
+        privacy: 'PUBLIC' | 'CONTACTS' | 'CLOSE_FRIENDS' | 'CUSTOM';
+        backgroundColor?: string;
+        textColor?: string;
+        mentionedUsers?: string[];
+      } = {
         mediaType,
         privacy,
-        ...(mediaUrl && { mediaUrl }),
-        ...(backgroundColor && { backgroundColor }),
-        ...(textColor && { textColor }),
-        ...(mentionedUsers?.length > 0 && { mentionedUsers })
       };
-      
-      // Remove undefined values
-      Object.keys(statusData).forEach(key => 
-        statusData[key] === undefined && delete statusData[key]
-      );
+
+      // Only add content if it exists
+      const trimmedContent = content.trim();
+      if (trimmedContent) {
+        statusData.content = trimmedContent;
+      }
+
+      // Add media URL if exists
+      if (mediaUrl) {
+        statusData.mediaUrl = mediaUrl;
+      }
+
+      // Add optional fields if they exist
+      if (backgroundColor) {
+        statusData.backgroundColor = backgroundColor;
+      }
+      if (textColor) {
+        statusData.textColor = textColor;
+      }
+      if (mentionedUsers?.length > 0) {
+        statusData.mentionedUsers = mentionedUsers;
+      }
 
       // Use the statusService to create the status
       await statusService.createStatus(statusData);
