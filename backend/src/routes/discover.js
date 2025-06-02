@@ -463,6 +463,412 @@ router.get('/search', optionalAuth, async (req, res) => {
   }
 });
 
+// Get post comments
+router.get('/posts/:postId/comments', optionalAuth, async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = (page - 1) * limit;
+
+    // Check if post exists
+    const post = await db('posts')
+      .where({ postId, isDeleted: false })
+      .first();
+
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        error: 'Post not found',
+      });
+    }
+
+    const comments = await db('post_comments')
+      .join('users', 'post_comments.userId', 'users.userId')
+      .where('post_comments.postId', postId)
+      .where('post_comments.isDeleted', false)
+      .whereNull('post_comments.parentCommentId') // Only top-level comments
+      .select(
+        'post_comments.commentId',
+        'post_comments.content',
+        'post_comments.createdAt',
+        'users.userId',
+        'users.username',
+        'users.fullName',
+        'users.profilePhotoUrl'
+      )
+      .orderBy('post_comments.createdAt', 'desc')
+      .limit(limit)
+      .offset(offset);
+
+    // Get reply counts for each comment
+    const commentsWithReplies = await Promise.all(
+      comments.map(async (comment) => {
+        const replyCount = await db('post_comments')
+          .where({ parentCommentId: comment.commentId, isDeleted: false })
+          .count('* as count')
+          .first();
+
+        return {
+          ...comment,
+          replyCount: parseInt(replyCount.count),
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      comments: commentsWithReplies,
+      pagination: {
+        page,
+        limit,
+        hasMore: comments.length === limit,
+      },
+    });
+
+  } catch (error) {
+    logger.error('Get post comments error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get comments',
+    });
+  }
+});
+
+// Add comment to post
+router.post('/posts/:postId/comments', [
+  authenticateToken,
+  body('content').isLength({ min: 1, max: 1000 }).withMessage('Comment content required'),
+  body('parentCommentId').optional().isUUID(),
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: errors.array(),
+      });
+    }
+
+    const { postId } = req.params;
+    const { content, parentCommentId } = req.body;
+
+    // Check if post exists
+    const post = await db('posts')
+      .where({ postId, isDeleted: false })
+      .first();
+
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        error: 'Post not found',
+      });
+    }
+
+    // If replying to a comment, check if parent comment exists
+    if (parentCommentId) {
+      const parentComment = await db('post_comments')
+        .where({ commentId: parentCommentId, postId, isDeleted: false })
+        .first();
+
+      if (!parentComment) {
+        return res.status(404).json({
+          success: false,
+          error: 'Parent comment not found',
+        });
+      }
+    }
+
+    const commentId = uuidv4();
+    const commentData = {
+      commentId,
+      postId,
+      userId: req.user.userId,
+      content,
+      parentCommentId: parentCommentId || null,
+      isDeleted: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    await db('post_comments').insert(commentData);
+
+    res.json({
+      success: true,
+      comment: {
+        ...commentData,
+        username: req.user.username,
+        fullName: req.user.fullName,
+        profilePhotoUrl: req.user.profilePhotoUrl,
+        replyCount: 0,
+      },
+      message: 'Comment added successfully',
+    });
+
+  } catch (error) {
+    logger.error('Add post comment error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to add comment',
+    });
+  }
+});
+
+// Like/Unlike reel
+router.post('/reels/:reelId/like', authenticateToken, async (req, res) => {
+  try {
+    const { reelId } = req.params;
+
+    // Check if reel exists
+    const reel = await db('reels')
+      .where({ reelId, isDeleted: false })
+      .first();
+
+    if (!reel) {
+      return res.status(404).json({
+        success: false,
+        error: 'Reel not found',
+      });
+    }
+
+    // Check if already liked
+    const existingLike = await db('reel_likes')
+      .where({ reelId, userId: req.user.userId })
+      .first();
+
+    if (existingLike) {
+      // Unlike
+      await db('reel_likes')
+        .where({ reelId, userId: req.user.userId })
+        .del();
+
+      res.json({
+        success: true,
+        message: 'Reel unliked',
+        isLiked: false,
+      });
+    } else {
+      // Like
+      await db('reel_likes').insert({
+        reelId,
+        userId: req.user.userId,
+        createdAt: new Date(),
+      });
+
+      res.json({
+        success: true,
+        message: 'Reel liked',
+        isLiked: true,
+      });
+    }
+
+  } catch (error) {
+    logger.error('Like/unlike reel error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to like/unlike reel',
+    });
+  }
+});
+
+// Get reel comments
+router.get('/reels/:reelId/comments', optionalAuth, async (req, res) => {
+  try {
+    const { reelId } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = (page - 1) * limit;
+
+    // Check if reel exists
+    const reel = await db('reels')
+      .where({ reelId, isDeleted: false })
+      .first();
+
+    if (!reel) {
+      return res.status(404).json({
+        success: false,
+        error: 'Reel not found',
+      });
+    }
+
+    const comments = await db('reel_comments')
+      .join('users', 'reel_comments.userId', 'users.userId')
+      .where('reel_comments.reelId', reelId)
+      .where('reel_comments.isDeleted', false)
+      .whereNull('reel_comments.parentCommentId') // Only top-level comments
+      .select(
+        'reel_comments.commentId',
+        'reel_comments.content',
+        'reel_comments.createdAt',
+        'users.userId',
+        'users.username',
+        'users.fullName',
+        'users.profilePhotoUrl'
+      )
+      .orderBy('reel_comments.createdAt', 'desc')
+      .limit(limit)
+      .offset(offset);
+
+    // Get reply counts for each comment
+    const commentsWithReplies = await Promise.all(
+      comments.map(async (comment) => {
+        const replyCount = await db('reel_comments')
+          .where({ parentCommentId: comment.commentId, isDeleted: false })
+          .count('* as count')
+          .first();
+
+        return {
+          ...comment,
+          replyCount: parseInt(replyCount.count),
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      comments: commentsWithReplies,
+      pagination: {
+        page,
+        limit,
+        hasMore: comments.length === limit,
+      },
+    });
+
+  } catch (error) {
+    logger.error('Get reel comments error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get comments',
+    });
+  }
+});
+
+// Add comment to reel
+router.post('/reels/:reelId/comments', [
+  authenticateToken,
+  body('content').isLength({ min: 1, max: 1000 }).withMessage('Comment content required'),
+  body('parentCommentId').optional().isUUID(),
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: errors.array(),
+      });
+    }
+
+    const { reelId } = req.params;
+    const { content, parentCommentId } = req.body;
+
+    // Check if reel exists
+    const reel = await db('reels')
+      .where({ reelId, isDeleted: false })
+      .first();
+
+    if (!reel) {
+      return res.status(404).json({
+        success: false,
+        error: 'Reel not found',
+      });
+    }
+
+    // If replying to a comment, check if parent comment exists
+    if (parentCommentId) {
+      const parentComment = await db('reel_comments')
+        .where({ commentId: parentCommentId, reelId, isDeleted: false })
+        .first();
+
+      if (!parentComment) {
+        return res.status(404).json({
+          success: false,
+          error: 'Parent comment not found',
+        });
+      }
+    }
+
+    const commentId = uuidv4();
+    const commentData = {
+      commentId,
+      reelId,
+      userId: req.user.userId,
+      content,
+      parentCommentId: parentCommentId || null,
+      isDeleted: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    await db('reel_comments').insert(commentData);
+
+    res.json({
+      success: true,
+      comment: {
+        ...commentData,
+        username: req.user.username,
+        fullName: req.user.fullName,
+        profilePhotoUrl: req.user.profilePhotoUrl,
+        replyCount: 0,
+      },
+      message: 'Comment added successfully',
+    });
+
+  } catch (error) {
+    logger.error('Add reel comment error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to add comment',
+    });
+  }
+});
+
+// Record reel view
+router.post('/reels/:reelId/view', authenticateToken, async (req, res) => {
+  try {
+    const { reelId } = req.params;
+
+    // Check if reel exists
+    const reel = await db('reels')
+      .where({ reelId, isDeleted: false })
+      .first();
+
+    if (!reel) {
+      return res.status(404).json({
+        success: false,
+        error: 'Reel not found',
+      });
+    }
+
+    // Check if already viewed
+    const existingView = await db('reel_views')
+      .where({ reelId, userId: req.user.userId })
+      .first();
+
+    if (!existingView) {
+      // Record view
+      await db('reel_views').insert({
+        reelId,
+        userId: req.user.userId,
+        viewedAt: new Date(),
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'View recorded',
+    });
+
+  } catch (error) {
+    logger.error('Record reel view error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to record view',
+    });
+  }
+});
+
 // Get trending hashtags
 router.get('/trending/hashtags', async (req, res) => {
   try {

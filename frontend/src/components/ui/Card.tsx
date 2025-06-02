@@ -38,6 +38,10 @@ interface PostCardProps {
   comments?: number;
   timestamp: string;
   className?: string;
+  isLiked?: boolean;
+  onLike?: () => void;
+  onComment?: () => void;
+  onShare?: () => void;
 }
 
 // Base Card Component
