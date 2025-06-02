@@ -110,8 +110,6 @@ export default {
         '300': '75rem', // 300px desktop product cards
         '600': '150rem', // 600px video reels height
         '800': '200rem', // 800px video reels height
-      },
-      height: {
         'screen-safe': 'calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom))',
       },
       minHeight: {

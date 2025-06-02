@@ -2,43 +2,59 @@ import { Routes, Route } from 'react-router-dom'
 import { useState } from 'react'
 
 import SubTabNavigation from '../../components/ui/SubTabNavigation'
+import { ProductCard } from '../../components/ui/Card'
+import Button from '../../components/ui/Button'
 
-// Placeholder components for sub-tabs
+// Shop Tab - 2-column mobile, 4-column desktop grid layouts
 const ShopTab = () => (
-  <div className="p-6">
-    <h2 className="text-2xl font-bold text-gray-900 mb-4">Shop</h2>
+  <div className="p-4 lg:p-6">
+    <h2 className="text-xl lg:text-2xl font-bold text-gray-900 mb-4">Shop</h2>
     
     {/* Categories */}
     <div className="mb-6">
       <h3 className="text-lg font-semibold text-gray-900 mb-3">Categories</h3>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {['Electronics', 'Fashion', 'Home', 'Sports'].map((category) => (
-          <div key={category} className="bg-white rounded-lg shadow p-4 text-center cursor-pointer hover:shadow-md transition-shadow">
-            <div className="text-2xl mb-2">📱</div>
-            <p className="font-medium text-gray-900">{category}</p>
-          </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+        {[
+          { name: 'Electronics', icon: '📱' },
+          { name: 'Fashion', icon: '👕' },
+          { name: 'Home', icon: '🏠' },
+          { name: 'Sports', icon: '⚽' },
+          { name: 'Books', icon: '📚' },
+          { name: 'Beauty', icon: '💄' },
+          { name: 'Toys', icon: '🧸' },
+          { name: 'Food', icon: '🍕' }
+        ].map((category) => (
+          <button key={category.name} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-center hover:shadow-md transition-shadow">
+            <div className="text-2xl mb-2">{category.icon}</div>
+            <p className="font-medium text-gray-900 text-sm">{category.name}</p>
+          </button>
         ))}
       </div>
     </div>
 
-    {/* Products Grid */}
+    {/* Products Grid - 2-column mobile (165px), 4-column desktop (300px) */}
     <div className="mb-6">
       <h3 className="text-lg font-semibold text-gray-900 mb-3">For You</h3>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-          <div key={i} className="bg-white rounded-lg shadow overflow-hidden cursor-pointer hover:shadow-md transition-shadow">
-            <div className="aspect-square bg-gray-200 flex items-center justify-center">
-              <span className="text-gray-500">📷</span>
-            </div>
-            <div className="p-3">
-              <h4 className="font-medium text-gray-900 truncate">Product {i}</h4>
-              <p className="text-primary-600 font-bold">${(i * 25).toFixed(2)}</p>
-              <div className="flex items-center mt-1">
-                <span className="text-yellow-400">⭐</span>
-                <span className="text-sm text-gray-600 ml-1">4.{i}</span>
-              </div>
-            </div>
-          </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+        {[
+          { title: 'iPhone 15 Pro Max', price: '$1,199.00', rating: 4.8, badge: 'New' },
+          { title: 'MacBook Air M2', price: '$999.00', rating: 4.9 },
+          { title: 'Nike Air Jordan 1', price: '$170.00', rating: 4.7, badge: '20% off' },
+          { title: 'Sony WH-1000XM5', price: '$399.00', rating: 4.6 },
+          { title: 'Samsung Galaxy S24', price: '$899.00', rating: 4.5, badge: 'Hot' },
+          { title: 'iPad Pro 12.9"', price: '$1,099.00', rating: 4.8 },
+          { title: 'Adidas Ultraboost 22', price: '$180.00', rating: 4.4, badge: 'Sale' },
+          { title: 'AirPods Pro 2', price: '$249.00', rating: 4.7 }
+        ].map((product, index) => (
+          <ProductCard
+            key={index}
+            image={`/api/placeholder/300/300`}
+            title={product.title}
+            price={product.price}
+            rating={product.rating}
+            badge={product.badge}
+            onClick={() => console.log('Product clicked:', product.title)}
+          />
         ))}
       </div>
     </div>
@@ -46,15 +62,15 @@ const ShopTab = () => (
 )
 
 const SellTab = () => (
-  <div className="p-6">
-    <h2 className="text-2xl font-bold text-gray-900 mb-4">Sell</h2>
+  <div className="p-4 lg:p-6 max-w-4xl mx-auto">
+    <h2 className="text-xl lg:text-2xl font-bold text-gray-900 mb-4">Sell</h2>
     
     {/* Quick Actions */}
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-      <button className="bg-primary-600 text-white rounded-lg p-6 text-left hover:bg-primary-700 transition-colors">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+      <button className="bg-blue-600 text-white rounded-lg p-6 text-left hover:bg-blue-700 transition-colors">
         <div className="text-2xl mb-2">📸</div>
         <h3 className="text-lg font-semibold mb-1">Create New Listing</h3>
-        <p className="text-primary-100">Take photos and list your item</p>
+        <p className="text-blue-100">Take photos and list your item</p>
       </button>
       
       <button className="bg-white border-2 border-gray-200 rounded-lg p-6 text-left hover:border-gray-300 transition-colors">
@@ -68,24 +84,33 @@ const SellTab = () => (
     <div>
       <h3 className="text-lg font-semibold text-gray-900 mb-3">My Listings</h3>
       <div className="space-y-4">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="bg-white rounded-lg shadow p-4">
+        {[
+          { name: 'Vintage Camera', price: 150, views: 23, status: 'Active' },
+          { name: 'Gaming Chair', price: 200, views: 12, status: 'Active' },
+          { name: 'Smartphone', price: 300, views: 45, status: 'Sold' }
+        ].map((item, index) => (
+          <div key={index} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
             <div className="flex items-center space-x-4">
               <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
                 <span className="text-gray-500">📷</span>
               </div>
               <div className="flex-1">
-                <h4 className="font-semibold text-gray-900">My Product {i}</h4>
-                <p className="text-primary-600 font-bold">${(i * 50).toFixed(2)}</p>
-                <p className="text-sm text-gray-600">Active • 5 views</p>
+                <h4 className="font-semibold text-gray-900">{item.name}</h4>
+                <p className="text-blue-600 font-bold">${item.price.toFixed(2)}</p>
+                <p className="text-sm text-gray-600">
+                  <span className={item.status === 'Sold' ? 'text-green-600' : 'text-blue-600'}>
+                    {item.status}
+                  </span>
+                  {' • '}{item.views} views
+                </p>
               </div>
               <div className="flex space-x-2">
-                <button className="px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200">
+                <Button variant="secondary" size="sm">
                   Edit
-                </button>
-                <button className="px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200">
+                </Button>
+                <Button variant="outline" size="sm" className="text-red-600 border-red-300 hover:bg-red-50">
                   Delete
-                </button>
+                </Button>
               </div>
             </div>
           </div>
