@@ -11,10 +11,10 @@ import {
   Search,
   Phone,
 } from 'lucide-react';
-import { useChatStore } from '../../store/chatStore';
+import { useChatStore } from '../../../../store/chatStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, isToday, isYesterday } from 'date-fns';
-import type { Message } from '../../types/chat';
+import type { Message } from '../../../../types/chat';
 
 // Utility function to merge class names
 function cn(...classes: (string | boolean | undefined)[]) {

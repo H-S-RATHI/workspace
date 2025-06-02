@@ -10,7 +10,7 @@ import {
   Lock,
   Send
 } from 'lucide-react';
-import { statusService } from '../../services/statusService';
+import { statusService } from '../../../../services/statusService';
 
 interface StatusCreatorProps {
   isOpen: boolean;
