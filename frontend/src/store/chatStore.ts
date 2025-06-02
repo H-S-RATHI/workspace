@@ -19,7 +19,7 @@ interface ChatActions {
   selectConversation: (conversationId: string) => Promise<void>
   
   // Messages
-  sendMessage: (content: string, messageType?: string) => Promise<void>
+  sendMessage: (content: string, messageType?: 'TEXT' | 'IMAGE' | 'VOICE' | 'LOCATION' | 'PAYMENT') => Promise<void>
   loadMoreMessages: () => Promise<void>
   
   // Search
@@ -110,27 +110,39 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
   },
 
   // Send a message in the current conversation
-  sendMessage: async (content: string, messageType: string = 'TEXT') => {
+  sendMessage: async (content: string, messageType: 'TEXT' | 'IMAGE' | 'VOICE' | 'LOCATION' | 'PAYMENT' = 'TEXT') => {
     const { currentConversation, messages } = get()
     if (!currentConversation) return
     
     set({ isSending: true, error: null })
     
+    // Create temp message outside try block to make it accessible in catch
+    const tempMessage: Message = {
+      messageId: `temp-${Date.now()}`,
+      convoId: currentConversation.convoId,
+      senderId: 'current-user', // This will be replaced by the actual user ID from the backend
+      senderUsername: 'You',
+      msgType: messageType as any,
+      contentText: content,
+      timestamp: new Date().toISOString(),
+      status: 'SENT' as const
+    }
+    
     try {
       const socket = useSocketStore.getState().socket
       const messageData: SendMessageData = { message: content, messageType }
       
-      // Optimistically add the message to the UI
-      const tempMessage: Message = {
-        messageId: `temp-${Date.now()}`,
-        convoId: currentConversation.convoId,
-        senderId: 'current-user', // This will be replaced by the actual user ID from the backend
-        senderUsername: 'You',
-        msgType: messageType as any,
-        contentText: content,
-        timestamp: new Date().toISOString(),
-        status: 'SENT'
-      }
+      // Add the temp message to the UI
+      set(state => ({
+        messages: [...state.messages, tempMessage],
+        conversations: state.conversations.map(conv => 
+          conv.convoId === currentConversation.convoId 
+            ? { ...conv, lastMessage: tempMessage, lastMessageAt: tempMessage.timestamp }
+            : conv
+        ).sort((a, b) => 
+          new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+        )
+      }))
       
       set(state => ({
         messages: [...state.messages, tempMessage],
@@ -165,18 +177,17 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
           )
         }))
       }
-    } catch (error: any) {
-      set({ error: error.message || 'Failed to send message' })
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : typeof error === 'string' 
+          ? error 
+          : 'Failed to send message';
+      
+      set({ error: errorMessage })
       console.error('Error sending message:', error)
       
-      // Mark the message as failed
-      set(state => ({
-        messages: state.messages.map(msg => 
-          msg.messageId === tempMessage.messageId 
-            ? { ...msg, status: 'FAILED' } 
-            : msg
-        )
-      }))
+
     } finally {
       set({ isSending: false })
     }
