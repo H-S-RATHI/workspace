@@ -153,20 +153,6 @@ export const createMessageActions = (
           messageType
         })
       }
-      
-      // Also send via HTTP for persistence
-      const response = await chatAPI.sendMessage(currentConversation.convoId, messageData)
-      
-      if (response.success) {
-        // Replace the temporary message with the actual one from the server
-        set(state => ({
-          messages: state.messages.map(msg => 
-            msg.messageId === tempMessage.messageId 
-              ? response.message 
-              : msg
-          )
-        }))
-      }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error 
         ? error.message 

@@ -5,7 +5,6 @@ import {
   Camera, 
   Type
 } from 'lucide-react';
-import { statusService } from '../../../../services/statusService';
 import StatusMediaPreview from './StatusMediaPreview';
 import StatusTextInput from './StatusTextInput';
 import StatusMentionSuggestions from './StatusMentionSuggestions';

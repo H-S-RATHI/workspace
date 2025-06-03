@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Paperclip, Smile, Send } from 'lucide-react';
 import { cn } from './utils';
 
@@ -19,9 +19,18 @@ export const ChatInput = ({
 }: ChatInputProps) => {
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Common emojis for the emoji picker
   const emojis = ['😀', '😂', '😍', '👍', '❤️', '🔥', '🎉', '🙏'];
+
+  // Auto-resize textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = '24px'; // reset to min height
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+    }
+  }, [message]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -36,11 +45,12 @@ export const ChatInput = ({
         <div className="flex-1 relative">
           <div className="relative">
             <textarea
+              ref={textareaRef}
               value={message}
               onChange={(e) => onMessageChange(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Type a message..."
-              className="flex-1 border-0 bg-transparent focus:outline-none placeholder-gray-400 text-gray-900 dark:text-white resize-none overflow-hidden min-h-[24px] max-h-32"
+              className="flex-1 border-0 bg-white dark:bg-gray-900 focus:outline-none placeholder-gray-400 text-gray-900 dark:text-white resize-none overflow-hidden min-h-[24px] max-h-32"
               rows={1}
             />
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex space-x-1">
