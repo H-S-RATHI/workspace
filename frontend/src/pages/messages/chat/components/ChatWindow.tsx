@@ -1,17 +1,10 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import React from 'react';
-import { 
-  Send, 
-  Paperclip, 
-  Smile, 
-  Check,
-  CheckCheck,
-  MessageCircle,
-  Video,
-  MoreVertical,
-  Search,
-  Phone,
-} from 'lucide-react';
+import { ChatHeader } from './ChatHeader';
+import { ChatInput } from './ChatInput';
+import { DateHeader } from './DateHeader';
+import { EmptyState, TypingIndicator } from './EmptyState';
+import { MessageBubble } from './MessageBubble';
 import { useChatStore } from '../../../../store/chatStore'
 import { useAuthStore } from '../../../../store/authStore';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -53,109 +46,6 @@ const formatMessageDate = (date: Date): string => {
   return format(date, 'MMMM d, yyyy');
 };
 
-// Typing indicator component
-const TypingIndicator = () => (
-  <div className="flex items-center space-x-1 px-4 py-2">
-    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-  </div>
-);
-
-// Message bubble component - memoized to prevent unnecessary re-renders
-const MessageBubble = React.memo(({ 
-  message, 
-  isCurrentUser 
-}: { 
-  message: Message; 
-  isCurrentUser: boolean;
-}) => {
-  const [showTime, setShowTime] = useState(false);
-  
-  // Debug log when message is rendered
-  useEffect(() => {
-    console.log('Rendering MessageBubble:', {
-      messageId: message.messageId,
-      content: message.contentText,
-      timestamp: message.timestamp,
-      isCurrentUser,
-      status: message.status
-    });
-  }, [message, isCurrentUser]);
-  
-  // Memoize the status indicator to prevent re-renders
-  const statusIndicator = useMemo(() => {
-    if (!isCurrentUser) return null;
-    
-    return (
-      <span className="ml-1">
-        {message.status === 'SENT' && <Check className="w-3 h-3" />}
-        {message.status === 'DELIVERED' && <CheckCheck className="w-3 h-3" />}
-        {message.status === 'READ' && <CheckCheck className="w-3 h-3 text-blue-200" />}
-      </span>
-    );
-  }, [isCurrentUser, message.status]);
-  
-  return (
-    <motion.div
-      key={`message-${message.messageId}`}
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
-      className={cn(
-        'flex',
-        isCurrentUser ? 'justify-end' : 'justify-start',
-        'mb-2 px-4',
-        'message-bubble-container'
-      )}
-    >
-      <div 
-        className={cn(
-          'max-w-xs md:max-w-md lg:max-w-lg px-4 py-3 rounded-2xl relative',
-          isCurrentUser 
-            ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-br-md shadow-md' 
-            : 'bg-white text-gray-800 rounded-bl-md shadow-sm border border-gray-100',
-          'hover:shadow-lg transition-all duration-200',
-          'message-bubble'
-        )}
-        onMouseEnter={() => setShowTime(true)}
-        onMouseLeave={() => setShowTime(false)}
-      >
-        <p className="text-sm whitespace-pre-wrap break-words message-content">
-          {message.contentText || ''}
-        </p>
-        <div 
-          className={cn(
-            'flex items-center justify-end mt-1 space-x-1 transition-opacity',
-            showTime ? 'opacity-100' : 'opacity-0',
-            'text-xs message-timestamp',
-            isCurrentUser ? 'text-blue-100' : 'text-gray-500'
-          )}
-        >
-          <span className="timestamp">{formatMessageTime(message.timestamp)}</span>
-          {statusIndicator}
-        </div>
-      </div>
-    </motion.div>
-  );
-});
-
-// Add display name for better debugging
-MessageBubble.displayName = 'MessageBubble';
-
-// Empty state component
-const EmptyState = () => (
-  <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-    <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-4">
-      <MessageCircle className="w-8 h-8 text-blue-500" />
-    </div>
-    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No messages yet</h3>
-    <p className="text-gray-500 dark:text-gray-400 max-w-md">
-      Start the conversation by sending your first message
-    </p>
-  </div>
-);
-
 // Memoize the component to prevent unnecessary re-renders
 const ChatWindow = () => {
   // Only log renders in development
@@ -183,28 +73,8 @@ const ChatWindow = () => {
   const currentUserId = useAuthStore((state) => state.user?.userId || '');
   const { isConnected } = useSocketStore();
   
-  // WebSocket connection setup - commented out for now
-  // Uncomment and implement when WebSocket service is ready
-  /*
-  React.useEffect(() => {
-    console.log('ChatWindow mounted, initializing WebSocket connection...');
-    
-    // Only connect if we have an access token
-    const { accessToken } = useAuthStore.getState();
-    if (!accessToken) {
-      console.log('No access token available, skipping WebSocket connection');
-      return;
-    }
-    
-    // TODO: Implement WebSocket connection
-    // Example: const socket = new WebSocket(`wss://yourserver.com/ws?token=${accessToken}`);
-    
-    return () => {
-      // Cleanup WebSocket connection on unmount
-      // Example: socket.close();
-    };
-  }, []);
-  */
+
+  
   
   const [message, setMessage] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -276,17 +146,7 @@ const ChatWindow = () => {
   };
   
   if (!currentConversation || !currentConversation.displayName) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 p-6">
-        <div className="text-center max-w-md">
-          <div className="mx-auto w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center mb-4">
-            <MessageCircle className="w-8 h-8 text-gray-400" />
-          </div>
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No conversation selected</h3>
-          <p className="text-gray-600 dark:text-gray-400">Select a conversation or start a new one to begin messaging</p>
-        </div>
-      </div>
-    );
+    return <EmptyState title="No conversation selected" message="Select a conversation or start a new one to begin messaging" />;
   }
   
   // Group messages by date
@@ -322,77 +182,38 @@ const ChatWindow = () => {
         </div>
       )}
       {/* Chat header */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 shadow-sm">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white font-medium">
-              {getInitials(currentConversation.displayName || '')}
-            </div>
-            <div>
-              <h3 className="font-semibold text-lg">{currentConversation.displayName}</h3>
-              <p className="text-xs text-white/80">
-                {isTyping ? 'typing...' : 'Online'}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-2">
-            <button className="p-2 hover:bg-white/20 rounded-full transition-colors">
-              <Phone className="w-5 h-5" />
-            </button>
-            <button className="p-2 hover:bg-white/20 rounded-full transition-colors">
-              <Video className="w-5 h-5" />
-            </button>
-            <button className="p-2 hover:bg-white/20 rounded-full transition-colors">
-              <Search className="w-5 h-5" />
-            </button>
-            <button className="p-2 hover:bg-white/20 rounded-full transition-colors">
-              <MoreVertical className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-      </div>
+      <ChatHeader
+        name={currentConversation.displayName}
+        status={isTyping ? 'typing' : 'online'}
+        onMenuClick={() => setIsMenuOpen(!isMenuOpen)}
+        onSearchClick={() => {}}
+        onCallClick={() => {}}
+        onVideoCallClick={() => {}}
+      />
       
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         <AnimatePresence>
           {messages.length === 0 ? (
-            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-              <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-4">
-                <MessageCircle className="w-8 h-8 text-blue-500" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No messages yet</h3>
-              <p className="text-gray-500 dark:text-gray-400 max-w-md">
-                Start the conversation by sending your first message
-              </p>
-            </div>
+            <EmptyState />
           ) : (
-            Object.entries(groupedMessages).map(([date, dateMessages]) => {
-              // Log when messages are being rendered for a date group
-              console.log(`Rendering ${dateMessages.length} messages for date: ${date}`);
-              
-              return (
-                <div key={`date-${date}`} className="mb-4">
-                  <div className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm py-2 text-center">
-                    <span className="inline-block px-3 py-1 text-xs font-medium text-gray-500 bg-gray-100 dark:bg-gray-800 rounded-full">
-                      {formatMessageDate(new Date(date))}
-                    </span>
-                  </div>
-                  {dateMessages
-                    .filter((msg) => msg && msg.contentText && msg.contentText.trim() !== '')
-                    .map((msg) => {
-                      // Ensure we have a valid message ID
-                      const messageKey = `msg-${msg.messageId || msg.timestamp}-${msg.senderId}`;
-                      return (
-                        <MessageBubble
-                          key={messageKey}
-                          message={msg}
-                          isCurrentUser={msg.senderId === currentUserId}
-                        />
-                      );
-                    })}
-                </div>
-              );
-            })
+            Object.entries(groupedMessages).map(([date, dateMessages]) => (
+              <div key={`date-${date}`} className="mb-4">
+                <DateHeader date={date} />
+                {dateMessages
+                  .filter((msg) => msg && msg.contentText && msg.contentText.trim() !== '')
+                  .map((msg) => {
+                    const messageKey = `msg-${msg.messageId || msg.timestamp}-${msg.senderId}`;
+                    return (
+                      <MessageBubble
+                        key={messageKey}
+                        message={msg}
+                        isCurrentUser={msg.senderId === currentUserId}
+                      />
+                    );
+                  })}
+              </div>
+            ))
           )}
           {isTyping && <TypingIndicator />}
           <div ref={messagesEndRef} />
@@ -400,79 +221,13 @@ const ChatWindow = () => {
       </div>
       
       {/* Message input */}
-      <div className="border-t border-gray-200 p-4 bg-white">
-        <form 
-          ref={formRef}
-          onSubmit={handleSendMessage}
-          className="flex items-end space-x-3"
-        >
-          <button 
-            type="button" 
-            className="p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <Paperclip className="w-5 h-5" />
-            <input 
-              ref={fileInputRef}
-              type="file" 
-              className="hidden" 
-              onChange={handleFileSelect}
-            />
-          </button>
-          
-          <div className="relative flex-1">
-            <textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Type a message..."
-              className="w-full min-h-[44px] max-h-32 px-4 py-3 pr-12 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all resize-none"
-              rows={1}
-            />
-            <button 
-              type="button" 
-              className="absolute right-3 bottom-3 text-gray-500 hover:text-gray-700 transition-colors"
-              onClick={toggleEmojiPicker}
-            >
-              <Smile className="w-5 h-5" />
-            </button>
-          </div>
-          
-          <button 
-            type="submit" 
-            disabled={!message.trim() || isSending}
-            className="p-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
-          >
-            <Send className="w-5 h-5" />
-          </button>
-        </form>
-        
-        {/* Emoji picker */}
-        <AnimatePresence>
-          {isEmojiPickerOpen && (
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
-              className="mt-2 p-3 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 absolute bottom-16 right-4 w-64 h-64 overflow-y-auto"
-            >
-              <div className="grid grid-cols-8 gap-2">
-                {['😀', '😂', '😍', '😎', '👍', '❤️', '🔥', '🎉', '🙏', '👋'].map((emoji) => (
-                  <button
-                    key={emoji}
-                    className="text-2xl hover:bg-gray-100 dark:hover:bg-gray-700 rounded p-1"
-                    onClick={() => {
-                      setMessage(prev => prev + emoji);
-                    }}
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+      <ChatInput
+        message={message}
+        isSending={isSending}
+        onMessageChange={setMessage}
+        onSend={handleSendMessage}
+        onAttachFile={() => fileInputRef.current?.click()}
+      />
     </div>
   );
 };
