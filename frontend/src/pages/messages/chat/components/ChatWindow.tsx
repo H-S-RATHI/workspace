@@ -10,6 +10,7 @@ import { format} from 'date-fns';
 import type { Message } from '../../../../types/chat';
 import { useSocketStore } from '../../../../store/socketStore';
 import { MessageList } from './MessageList';
+import { useCall } from '../../calls/hooks/useCall';
 
 
 
@@ -39,6 +40,7 @@ const ChatWindow = () => {
   const isSending = useChatStore((state) => state.isSending || false);
   const currentUserId = useAuthStore((state) => state.user?.userId || '');
   const { isConnected } = useSocketStore();
+  const { initiateCall } = useCall();
   
 
   
@@ -117,6 +119,11 @@ const ChatWindow = () => {
     })));
   }, [groupedMessages]);
   
+  // Find the other user in the conversation (for 1:1 chats)
+  const otherUser = currentConversation && !currentConversation.isGroup
+    ? currentConversation.members.find(m => m.userId !== currentUserId)
+    : null;
+  
   return (
     <div className="flex-1 flex flex-col h-full bg-gradient-to-b from-blue-50/30 to-white">
       <SocketWarning isConnected={isConnected} />
@@ -126,8 +133,12 @@ const ChatWindow = () => {
         status={isTyping ? 'typing' : 'online'}
         onMenuClick={() => setIsMenuOpen(!isMenuOpen)}
         onSearchClick={() => {}}
-        onCallClick={() => {}}
-        onVideoCallClick={() => {}}
+        onCallClick={() => {
+          if (otherUser) initiateCall(otherUser.userId, 'audio');
+        }}
+        onVideoCallClick={() => {
+          if (otherUser) initiateCall(otherUser.userId, 'video');
+        }}
       />
       
       {/* Messages area */}

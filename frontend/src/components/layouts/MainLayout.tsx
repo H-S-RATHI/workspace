@@ -7,7 +7,7 @@ import DesktopSidebar from '../ui/DesktopSidebar';
 import TopBar from '../ui/TopBar';
 import VideoCall from '../ui/VideoCall';
 import { useAuthStore } from '../../store/authStore';
-import { useCall } from '../../hooks/useCall';
+import { useCall } from '../../pages/messages/calls/hooks/useCall';
 import { colors, getSectionColors } from '../../styles/colors';
 
 const MainLayout = () => {
