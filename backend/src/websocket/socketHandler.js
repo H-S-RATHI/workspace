@@ -169,6 +169,12 @@ const initializeSocket = (io) => {
       try {
         const { conversationId, message, messageType = 'TEXT' } = data;
         
+        // Reject empty/null/whitespace-only messages
+        if (!message || typeof message !== 'string' || message.trim() === '') {
+          socket.emit('error', { message: 'Message content cannot be empty.' });
+          return;
+        }
+        
         // Verify user is member of conversation
         const membership = await db('conversation_members')
           .where({

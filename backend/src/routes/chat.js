@@ -284,7 +284,15 @@ router.get('/conversations/:convoId/messages', authenticateToken, async (req, re
 // Send message
 router.post('/conversations/:convoId/messages', [
   authenticateToken,
-  body('message').optional().isLength({ min: 1, max: 2000 }),
+  body('message')
+    .exists({ checkFalsy: true })
+    .withMessage('Message content is required')
+    .bail()
+    .isString()
+    .bail()
+    .trim()
+    .isLength({ min: 1, max: 2000 })
+    .withMessage('Message must be between 1 and 2000 characters'),
   body('messageType').optional().isIn(['TEXT', 'IMAGE', 'VOICE', 'LOCATION', 'PAYMENT']),
 ], async (req, res) => {
   try {
@@ -299,6 +307,14 @@ router.post('/conversations/:convoId/messages', [
 
     const { convoId } = req.params;
     const { message, messageType = 'TEXT', contentUrl } = req.body;
+
+    // Manual check for whitespace-only messages
+    if (!message || typeof message !== 'string' || message.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        error: 'Message content cannot be empty.',
+      });
+    }
 
     // Verify user is member of conversation
     const membership = await db('conversation_members')
