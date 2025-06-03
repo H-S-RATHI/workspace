@@ -17,6 +17,7 @@ import { useAuthStore } from '../../../../store/authStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, isToday, isYesterday } from 'date-fns';
 import type { Message } from '../../../../types/chat';
+import { useSocketStore } from '../../../../store/socketStore';
 
 // Utility function to merge class names
 function cn(...classes: (string | boolean | undefined)[]) {
@@ -158,17 +159,17 @@ const EmptyState = () => (
 // Memoize the component to prevent unnecessary re-renders
 const ChatWindow = () => {
   // Only log renders in development
-  if (process.env.NODE_ENV === 'development') {
+  if (import.meta.env.MODE === 'development') {
     console.log('ChatWindow component rendered');
   }
   
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.MODE === 'development') {
       console.log('ChatWindow mounted');
     }
     
     return () => {
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.MODE === 'development') {
         console.log('ChatWindow unmounted');
       }
     };
@@ -180,6 +181,7 @@ const ChatWindow = () => {
   const sendMessage = useChatStore((state) => state.sendMessage);
   const isSending = useChatStore((state) => state.isSending || false);
   const currentUserId = useAuthStore((state) => state.user?.userId || '');
+  const { isConnected } = useSocketStore();
   
   // WebSocket connection setup - commented out for now
   // Uncomment and implement when WebSocket service is ready
@@ -327,6 +329,12 @@ const ChatWindow = () => {
   
   return (
     <div className="flex-1 flex flex-col h-full bg-gradient-to-b from-blue-50/30 to-white">
+      {/* Socket connection warning */}
+      {!isConnected && (
+        <div className="bg-red-100 text-red-700 p-2 text-center text-sm font-medium">
+          Not connected to chat server. Please check your connection or try again later.
+        </div>
+      )}
       {/* Chat header */}
       <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 shadow-sm">
         <div className="flex items-center justify-between">

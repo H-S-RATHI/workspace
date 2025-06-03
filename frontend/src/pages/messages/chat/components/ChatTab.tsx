@@ -5,12 +5,14 @@ import { ConversationList } from './ConversationList'
 import ChatWindow from './ChatWindow'
 import MobileConversationList from './MobileConversationList'
 import MobileChatWindow from './MobileChatWindow'
+import { useChatStore } from '../../../../store/chatStore'
 
 const ChatTab = () => {
   const { isAuthenticated } = useAuthStore()
   const navigate = useNavigate()
   const [isMobile, setIsMobile] = useState(false)
   const [showChat, setShowChat] = useState(false)
+  const { currentConversation } = useChatStore()
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -47,7 +49,7 @@ const ChatTab = () => {
   return (
     <div className="flex h-full bg-gradient-to-br from-blue-50 to-indigo-100">
       <ConversationList />
-      <ChatWindow />
+      <ChatWindow key={currentConversation?.convoId || 'no-convo'} />
     </div>
   )
 }
