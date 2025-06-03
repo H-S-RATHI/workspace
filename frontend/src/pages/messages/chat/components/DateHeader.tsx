@@ -12,8 +12,8 @@ export const formatMessageDate = (date: Date): string => {
 };
 
 export const DateHeader = ({ date }: DateHeaderProps) => (
-  <div className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm py-2 text-center">
-    <span className="inline-block px-3 py-1 text-xs font-medium text-gray-500 bg-gray-100 dark:bg-gray-800 rounded-full">
+  <div className="flex justify-center items-center my-4">
+    <span className="px-4 py-1 text-sm font-semibold text-blue-700 bg-blue-100 rounded-full shadow-sm tracking-wide border border-blue-200">
       {formatMessageDate(new Date(date))}
     </span>
   </div>
