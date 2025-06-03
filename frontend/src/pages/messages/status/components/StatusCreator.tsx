@@ -131,10 +131,7 @@ const StatusCreator: React.FC<StatusCreatorProps> = ({
         statusData.mentionedUsers = mentionedUsers;
       }
 
-      // Use the statusService to create the status
-      await statusService.createStatus(statusData);
-      
-      // Call the parent's callback if provided
+      // Call the parent's callback to handle status creation
       if (onCreateStatus) {
         await onCreateStatus(statusData);
       }
