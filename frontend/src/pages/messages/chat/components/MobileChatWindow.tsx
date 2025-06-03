@@ -97,14 +97,6 @@ const MobileChatWindow = ({ onBack }: MobileChatWindowProps) => {
                   }`}
                 >
                   <p className="text-sm">{msg.contentText}</p>
-                  <p className={`text-xs mt-1 ${
-                    msg.senderId === 'current-user' ? 'text-blue-100' : 'text-gray-500'
-                  }`}>
-                    {new Date(msg.timestamp).toLocaleTimeString([], { 
-                      hour: '2-digit', 
-                      minute: '2-digit' 
-                    })}
-                  </p>
                 </div>
               </div>
             ))}

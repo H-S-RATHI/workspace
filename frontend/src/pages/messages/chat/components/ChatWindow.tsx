@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import React from 'react';
 import { 
   Send, 
   Paperclip, 
@@ -11,7 +12,8 @@ import {
   Search,
   Phone,
 } from 'lucide-react';
-import { useChatStore } from '../../../../store/chatStore';
+import { useChatStore } from '../../../../store/chatStore'
+import { useAuthStore } from '../../../../store/authStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, isToday, isYesterday } from 'date-fns';
 import type { Message } from '../../../../types/chat';
@@ -59,8 +61,8 @@ const TypingIndicator = () => (
   </div>
 );
 
-// Message bubble component
-const MessageBubble = ({ 
+// Message bubble component - memoized to prevent unnecessary re-renders
+const MessageBubble = React.memo(({ 
   message, 
   isCurrentUser 
 }: { 
@@ -69,15 +71,41 @@ const MessageBubble = ({
 }) => {
   const [showTime, setShowTime] = useState(false);
   
+  // Debug log when message is rendered
+  useEffect(() => {
+    console.log('Rendering MessageBubble:', {
+      messageId: message.messageId,
+      content: message.contentText,
+      timestamp: message.timestamp,
+      isCurrentUser,
+      status: message.status
+    });
+  }, [message, isCurrentUser]);
+  
+  // Memoize the status indicator to prevent re-renders
+  const statusIndicator = useMemo(() => {
+    if (!isCurrentUser) return null;
+    
+    return (
+      <span className="ml-1">
+        {message.status === 'SENT' && <Check className="w-3 h-3" />}
+        {message.status === 'DELIVERED' && <CheckCheck className="w-3 h-3" />}
+        {message.status === 'READ' && <CheckCheck className="w-3 h-3 text-blue-200" />}
+      </span>
+    );
+  }, [isCurrentUser, message.status]);
+  
   return (
     <motion.div
+      key={`message-${message.messageId}`}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
       className={cn(
         'flex',
         isCurrentUser ? 'justify-end' : 'justify-start',
-        'mb-2 px-4'
+        'mb-2 px-4',
+        'message-bubble-container'
       )}
     >
       <div 
@@ -86,74 +114,33 @@ const MessageBubble = ({
           isCurrentUser 
             ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-br-md shadow-md' 
             : 'bg-white text-gray-800 rounded-bl-md shadow-sm border border-gray-100',
-          'hover:shadow-lg transition-all duration-200'
+          'hover:shadow-lg transition-all duration-200',
+          'message-bubble'
         )}
         onMouseEnter={() => setShowTime(true)}
         onMouseLeave={() => setShowTime(false)}
       >
-        <p className="text-sm whitespace-pre-wrap break-words">{message.contentText || ''}</p>
-        <div className={cn(
-          'flex items-center justify-end mt-1 space-x-1 transition-opacity',
-          showTime ? 'opacity-100' : 'opacity-0',
-          'text-xs',
-          isCurrentUser ? 'text-blue-100' : 'text-gray-500'
-        )}>
-          <span>{formatMessageTime(message.timestamp)}</span>
-          {isCurrentUser && (
-            <span className="ml-1">
-              {message.status === 'SENT' && <Check className="w-3 h-3" />}
-              {message.status === 'DELIVERED' && <CheckCheck className="w-3 h-3" />}
-              {message.status === 'READ' && <CheckCheck className="w-3 h-3 text-blue-200" />}
-            </span>
+        <p className="text-sm whitespace-pre-wrap break-words message-content">
+          {message.contentText || ''}
+        </p>
+        <div 
+          className={cn(
+            'flex items-center justify-end mt-1 space-x-1 transition-opacity',
+            showTime ? 'opacity-100' : 'opacity-0',
+            'text-xs message-timestamp',
+            isCurrentUser ? 'text-blue-100' : 'text-gray-500'
           )}
+        >
+          <span className="timestamp">{formatMessageTime(message.timestamp)}</span>
+          {statusIndicator}
         </div>
       </div>
     </motion.div>
   );
-};
+});
 
-// Chat header component
-const ChatHeader = ({ 
-  name, 
-  status 
-}: { 
-  name: string; 
-  status: 'online' | 'offline' | 'typing';
-}) => (
-  <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-    <div className="flex items-center space-x-3">
-      <div className="relative">
-        <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-medium">
-          {getInitials(name)}
-        </div>
-        <span className={cn(
-          'absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white',
-          status === 'online' ? 'bg-green-500' : 'bg-gray-300'
-        )} />
-      </div>
-      <div>
-        <h3 className="font-medium text-gray-900 dark:text-white">{name}</h3>
-        <p className="text-xs text-gray-500">
-          {status === 'typing' ? 'typing...' : status === 'online' ? 'Online' : 'Offline'}
-        </p>
-      </div>
-    </div>
-    <div className="flex items-center space-x-4">
-      <button className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-        <Phone className="w-5 h-5" />
-      </button>
-      <button className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-        <Video className="w-5 h-5" />
-      </button>
-      <button className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-        <Search className="w-5 h-5" />
-      </button>
-      <button className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-        <MoreVertical className="w-5 h-5" />
-      </button>
-    </div>
-  </div>
-);
+// Add display name for better debugging
+MessageBubble.displayName = 'MessageBubble';
 
 // Empty state component
 const EmptyState = () => (
@@ -168,11 +155,53 @@ const EmptyState = () => (
   </div>
 );
 
-export const ChatWindow = () => {
-  const currentConversation = useChatStore((state) => state.currentConversation);
+// Memoize the component to prevent unnecessary re-renders
+const ChatWindow = () => {
+  // Only log renders in development
+  if (process.env.NODE_ENV === 'development') {
+    console.log('ChatWindow component rendered');
+  }
+  
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('ChatWindow mounted');
+    }
+    
+    return () => {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('ChatWindow unmounted');
+      }
+    };
+  }, []);
+  
+  // Memoize store selectors to prevent unnecessary re-renders
+  const { currentConversation } = useChatStore();
   const messages = useChatStore((state) => state.messages || []);
   const sendMessage = useChatStore((state) => state.sendMessage);
   const isSending = useChatStore((state) => state.isSending || false);
+  const currentUserId = useAuthStore((state) => state.user?.userId || '');
+  
+  // Handle WebSocket connection
+  React.useEffect(() => {
+    console.log('ChatWindow mounted, connecting to WebSocket...')
+    
+    // Only connect if we have an access token
+    const { accessToken } = useAuthStore.getState()
+    if (!accessToken) {
+      console.log('No access token available, skipping WebSocket connection')
+      return
+    }
+    
+    // Connect to WebSocket
+    console.log('Connecting to WebSocket...')
+    connect()
+    
+    // Cleanup function
+    return () => {
+      // Cleanup WebSocket connection on unmount
+      // For example: disconnectWebSocket();
+    };
+  }, []);
   
   const [message, setMessage] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -270,12 +299,30 @@ export const ChatWindow = () => {
       }
       
       acc[dateKey].push(message);
+      
+      // Log when message is added to grouped messages
+      console.log('Adding message to grouped messages:', {
+        messageId: message.messageId,
+        dateKey,
+        content: message.contentText,
+        timestamp: message.timestamp
+      });
+      
       return acc;
     } catch (error) {
       console.error('Error processing message date:', error);
       return acc;
     }
   }, {}) || {};
+  
+  // Log the final grouped messages
+  useEffect(() => {
+    console.log('Grouped messages:', Object.values(groupedMessages).flat().map(m => ({
+      id: m.messageId,
+      content: m.contentText,
+      timestamp: m.timestamp
+    })));
+  }, [groupedMessages]);
   
   return (
     <div className="flex-1 flex flex-col h-full bg-gradient-to-b from-blue-50/30 to-white">
@@ -324,22 +371,31 @@ export const ChatWindow = () => {
               </p>
             </div>
           ) : (
-            Object.entries(groupedMessages).map(([dateKey, dateMessages]) => (
-              <div key={dateKey} className="space-y-4">
-                <div className="relative flex justify-center">
-                  <span className="px-3 py-1 text-xs font-medium text-gray-500 bg-gray-100 dark:bg-gray-800 rounded-full">
-                    {formatMessageDate(new Date(dateKey))}
-                  </span>
+            Object.entries(groupedMessages).map(([date, dateMessages]) => {
+              // Log when messages are being rendered for a date group
+              console.log(`Rendering ${dateMessages.length} messages for date: ${date}`);
+              
+              return (
+                <div key={`date-${date}`} className="mb-4">
+                  <div className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm py-2 text-center">
+                    <span className="inline-block px-3 py-1 text-xs font-medium text-gray-500 bg-gray-100 dark:bg-gray-800 rounded-full">
+                      {formatMessageDate(new Date(date))}
+                    </span>
+                  </div>
+                  {dateMessages.map((msg) => {
+                    // Ensure we have a valid message ID
+                    const messageKey = `msg-${msg.messageId || msg.timestamp}-${msg.senderId}`;
+                    return (
+                      <MessageBubble
+                        key={messageKey}
+                        message={msg}
+                        isCurrentUser={msg.senderId === currentUserId}
+                      />
+                    );
+                  })}
                 </div>
-                {dateMessages.map((msg) => (
-                  <MessageBubble 
-                    key={msg.messageId} 
-                    message={msg} 
-                    isCurrentUser={msg.senderId === 'current-user'} 
-                  />
-                ))}
-              </div>
-            ))
+              );
+            })
           )}
           {isTyping && <TypingIndicator />}
           <div ref={messagesEndRef} />
