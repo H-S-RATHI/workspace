@@ -3,14 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, 
   Camera, 
-  Type, 
-  Users, 
-  Globe, 
-  UserCheck, 
-  Lock,
-  Send
+  Type
 } from 'lucide-react';
 import { statusService } from '../../../../services/statusService';
+import StatusMediaPreview from './StatusMediaPreview';
+import StatusTextInput from './StatusTextInput';
+import StatusMentionSuggestions from './StatusMentionSuggestions';
+import StatusPrivacySelector from './StatusPrivacySelector';
+import StatusFooter from './StatusFooter';
 
 interface StatusCreatorProps {
   isOpen: boolean;
@@ -193,45 +193,33 @@ const StatusCreator: React.FC<StatusCreatorProps> = ({
           {/* Content */}
           <div className="p-4 space-y-4 max-h-[calc(90vh-120px)] overflow-y-auto">
             {/* Media Preview */}
-            {mediaPreview && (
-              <div className="relative rounded-lg overflow-hidden">
-                {mediaType === 'IMAGE' ? (
-                  <img src={mediaPreview} alt="Preview" className="w-full h-48 object-cover" />
-                ) : (
-                  <video src={mediaPreview} className="w-full h-48 object-cover" controls />
-                )}
-                <button
-                  onClick={() => {
-                    setMediaFile(null);
-                    setMediaPreview(null);
-                    setMediaType('TEXT');
-                  }}
-                  className="absolute top-2 right-2 p-1 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
+            {mediaPreview && (mediaType === 'IMAGE' || mediaType === 'VIDEO') && (
+              <StatusMediaPreview
+                mediaPreview={mediaPreview}
+                mediaType={mediaType}
+                onRemove={() => {
+                  setMediaFile(null);
+                  setMediaPreview(null);
+                  setMediaType('TEXT');
+                }}
+              />
             )}
 
             {/* Text Content */}
             {!mediaPreview && (
-              <div 
-                className="relative rounded-lg p-6 min-h-[200px] flex items-center justify-center"
-                style={{ backgroundColor }}
-              >
-                <textarea
-                  ref={textareaRef}
-                  value={content}
-                  onChange={(e) => {
-                    setContent(e.target.value);
-                    handleMentionInput(e.target.value);
-                  }}
-                  placeholder="What's on your mind?"
-                  className="w-full bg-transparent border-none outline-none resize-none text-center text-xl font-medium placeholder-opacity-70"
-                  style={{ color: textColor }}
-                  rows={4}
-                />
-              </div>
+              <StatusTextInput
+                content={content}
+                setContent={setContent}
+                backgroundColor={backgroundColor}
+                setBackgroundColor={setBackgroundColor}
+                textColor={textColor}
+                setTextColor={setTextColor}
+                backgroundColors={backgroundColors}
+                textColors={textColors}
+                textareaRef={textareaRef}
+                handleMentionInput={handleMentionInput}
+                showColorPickers={!mediaPreview}
+              />
             )}
 
             {/* Text input for media posts */}
@@ -249,13 +237,7 @@ const StatusCreator: React.FC<StatusCreatorProps> = ({
             )}
 
             {/* Mention suggestions */}
-            {showMentions && (
-              <div className="bg-gray-50 rounded-lg p-2 max-h-32 overflow-y-auto">
-                <p className="text-sm text-gray-600 mb-2">Mention someone:</p>
-                {/* TODO: Implement user search and mention functionality */}
-                <div className="text-sm text-gray-500">Start typing to search users...</div>
-              </div>
-            )}
+            <StatusMentionSuggestions showMentions={showMentions} />
 
             {/* Controls */}
             <div className="space-y-4">
@@ -284,82 +266,19 @@ const StatusCreator: React.FC<StatusCreatorProps> = ({
                 </button>
               </div>
 
-              {/* Color Controls for Text Posts */}
-              {!mediaPreview && (
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-sm font-medium text-gray-700 mb-2">Background Color</p>
-                    <div className="flex flex-wrap gap-2">
-                      {backgroundColors.map((color) => (
-                        <button
-                          key={color}
-                          onClick={() => setBackgroundColor(color)}
-                          className={`w-8 h-8 rounded-full border-2 transition-all ${
-                            backgroundColor === color ? 'border-gray-400 scale-110' : 'border-gray-200'
-                          }`}
-                          style={{ backgroundColor: color }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="text-sm font-medium text-gray-700 mb-2">Text Color</p>
-                    <div className="flex gap-2">
-                      {textColors.map((color) => (
-                        <button
-                          key={color}
-                          onClick={() => setTextColor(color)}
-                          className={`w-8 h-8 rounded-full border-2 transition-all ${
-                            textColor === color ? 'border-gray-400 scale-110' : 'border-gray-200'
-                          }`}
-                          style={{ backgroundColor: color }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {/* Privacy Settings */}
-              <div>
-                <p className="text-sm font-medium text-gray-700 mb-2">Who can see this?</p>
-                <div className="space-y-2">
-                  {[
-                    { value: 'PUBLIC', label: 'Everyone', icon: Globe },
-                    { value: 'CONTACTS', label: 'Contacts & Chats', icon: UserCheck },
-                    { value: 'CLOSE_FRIENDS', label: 'Close Friends', icon: Users },
-                    { value: 'CUSTOM', label: 'Custom', icon: Lock },
-                  ].map(({ value, label, icon: Icon }) => (
-                    <button
-                      key={value}
-                      onClick={() => setPrivacy(value as any)}
-                      className={`w-full flex items-center space-x-3 p-3 rounded-lg border transition-colors ${
-                        privacy === value
-                          ? 'border-blue-500 bg-blue-50 text-blue-700'
-                          : 'border-gray-200 hover:bg-gray-50'
-                      }`}
-                    >
-                      <Icon className="w-5 h-5" />
-                      <span className="text-sm font-medium">{label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <StatusPrivacySelector privacy={privacy} setPrivacy={setPrivacy} />
             </div>
           </div>
 
           {/* Footer */}
-          <div className="p-4 border-t border-gray-200">
-            <button
-              onClick={handleSubmit}
-              disabled={(!content.trim() && !mediaFile) || isLoading}
-              className="w-full flex items-center justify-center space-x-2 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-            >
-              <Send className="w-5 h-5" />
-              <span>{isLoading ? 'Sharing...' : 'Share Status'}</span>
-            </button>
-          </div>
+          <StatusFooter
+            handleSubmit={handleSubmit}
+            disabled={(!content.trim() && !mediaFile) || isLoading}
+            isLoading={isLoading}
+            fileInputRef={fileInputRef}
+            handleFileSelect={handleFileSelect}
+          />
 
           {/* Hidden file input */}
           <input
