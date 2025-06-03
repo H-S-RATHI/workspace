@@ -292,25 +292,11 @@ const ChatWindow = () => {
   // Group messages by date
   const groupedMessages = messages?.reduce<Record<string, Message[]>>((acc, message) => {
     if (!message || !message.timestamp) return acc;
-    
     try {
       const date = new Date(message.timestamp);
       const dateKey = format(date, 'yyyy-MM-dd');
-      
-      if (!acc[dateKey]) {
-        acc[dateKey] = [];
-      }
-      
+      if (!acc[dateKey]) acc[dateKey] = [];
       acc[dateKey].push(message);
-      
-      // Log when message is added to grouped messages
-      console.log('Adding message to grouped messages:', {
-        messageId: message.messageId,
-        dateKey,
-        content: message.contentText,
-        timestamp: message.timestamp
-      });
-      
       return acc;
     } catch (error) {
       console.error('Error processing message date:', error);
@@ -391,17 +377,19 @@ const ChatWindow = () => {
                       {formatMessageDate(new Date(date))}
                     </span>
                   </div>
-                  {dateMessages.map((msg) => {
-                    // Ensure we have a valid message ID
-                    const messageKey = `msg-${msg.messageId || msg.timestamp}-${msg.senderId}`;
-                    return (
-                      <MessageBubble
-                        key={messageKey}
-                        message={msg}
-                        isCurrentUser={msg.senderId === currentUserId}
-                      />
-                    );
-                  })}
+                  {dateMessages
+                    .filter((msg) => msg && msg.contentText && msg.contentText.trim() !== '')
+                    .map((msg) => {
+                      // Ensure we have a valid message ID
+                      const messageKey = `msg-${msg.messageId || msg.timestamp}-${msg.senderId}`;
+                      return (
+                        <MessageBubble
+                          key={messageKey}
+                          message={msg}
+                          isCurrentUser={msg.senderId === currentUserId}
+                        />
+                      );
+                    })}
                 </div>
               );
             })
