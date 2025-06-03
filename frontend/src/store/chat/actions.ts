@@ -149,7 +149,7 @@ export const createMessageActions = (
       if (socket) {
         socket.emit('send_message', {
           conversationId: currentConversation.convoId,
-          content,
+          message: content,
           messageType
         })
       }
