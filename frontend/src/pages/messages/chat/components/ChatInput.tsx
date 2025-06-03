@@ -43,21 +43,22 @@ export const ChatInput = ({
     <div className="p-4 bg-white border-t border-gray-100 dark:border-gray-700">
       <form onSubmit={onSend} className="flex items-end justify-center">
         <div className="flex-1 flex items-end">
-          <div className="flex items-end w-full bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-sm px-4 py-2 border border-gray-200 dark:border-gray-700">
+          <div className="relative w-full bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-sm px-4 py-2 border border-gray-200 dark:border-gray-700 flex items-end">
             <textarea
               ref={textareaRef}
               value={message}
               onChange={(e) => onMessageChange(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Type a message..."
-              className="w-full border-0 bg-transparent focus:outline-none placeholder-gray-400 text-gray-900 dark:text-white resize-none overflow-hidden min-h-[32px] max-h-32 py-2 pr-20"
+              className="w-full border-0 bg-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-800 placeholder-gray-400 text-gray-900 dark:text-white resize-none overflow-hidden min-h-[32px] max-h-32 py-2 pr-16 rounded-2xl transition-shadow"
               rows={1}
             />
-            <div className="absolute right-8 bottom-3 flex space-x-1">
+            <div className="absolute bottom-2 right-4 flex space-x-1 items-center">
               <button
                 type="button"
                 onClick={onAttachFile}
                 className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-1"
+                tabIndex={-1}
               >
                 <Paperclip className="w-5 h-5" />
               </button>
@@ -65,6 +66,7 @@ export const ChatInput = ({
                 type="button"
                 onClick={() => setIsEmojiPickerOpen(!isEmojiPickerOpen)}
                 className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-1"
+                tabIndex={-1}
               >
                 <Smile className="w-5 h-5" />
               </button>
