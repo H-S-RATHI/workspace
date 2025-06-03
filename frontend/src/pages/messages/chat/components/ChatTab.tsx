@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../../../store/authStore'
 import { ConversationList } from './ConversationList'
-import { ChatWindow } from './ChatWindow'
+import ChatWindow from './ChatWindow'
 import MobileConversationList from './MobileConversationList'
 import MobileChatWindow from './MobileChatWindow'
 

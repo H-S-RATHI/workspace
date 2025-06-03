@@ -181,27 +181,28 @@ const ChatWindow = () => {
   const isSending = useChatStore((state) => state.isSending || false);
   const currentUserId = useAuthStore((state) => state.user?.userId || '');
   
-  // Handle WebSocket connection
+  // WebSocket connection setup - commented out for now
+  // Uncomment and implement when WebSocket service is ready
+  /*
   React.useEffect(() => {
-    console.log('ChatWindow mounted, connecting to WebSocket...')
+    console.log('ChatWindow mounted, initializing WebSocket connection...');
     
     // Only connect if we have an access token
-    const { accessToken } = useAuthStore.getState()
+    const { accessToken } = useAuthStore.getState();
     if (!accessToken) {
-      console.log('No access token available, skipping WebSocket connection')
-      return
+      console.log('No access token available, skipping WebSocket connection');
+      return;
     }
     
-    // Connect to WebSocket
-    console.log('Connecting to WebSocket...')
-    connect()
+    // TODO: Implement WebSocket connection
+    // Example: const socket = new WebSocket(`wss://yourserver.com/ws?token=${accessToken}`);
     
-    // Cleanup function
     return () => {
       // Cleanup WebSocket connection on unmount
-      // For example: disconnectWebSocket();
+      // Example: socket.close();
     };
   }, []);
+  */
   
   const [message, setMessage] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
