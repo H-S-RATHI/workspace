@@ -117,7 +117,7 @@ export const chatAPI = {
   getCallHistory: async (page = 1, limit = 20): Promise<{ success: boolean; calls: any[]; pagination: any }> => {
     return withRateLimit(() =>
       withRetry(async () => {
-        const response = await api.get(`/calls?page=${page}&limit=${limit}`);
+        const response = await api.get(`/chat/calls?page=${page}&limit=${limit}`);
         return response.data;
       })
     );
