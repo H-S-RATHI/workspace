@@ -1,6 +1,10 @@
-import { useState } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { ArrowLeft, Phone, Video, MoreVertical } from 'lucide-react'
 import { useChatStore } from '../../../../store/chatStore'
+import { useAuthStore } from '../../../../store/authStore'
+import { DateHeader } from './DateHeader'
+import { MessageBubble } from './MessageBubble'
+import type { Message } from '../../../../types/chat'
 
 interface MobileChatWindowProps {
   onBack: () => void
@@ -8,12 +12,31 @@ interface MobileChatWindowProps {
 
 const MobileChatWindow = ({ onBack }: MobileChatWindowProps) => {
   const { currentConversation, messages, sendMessage, isSending } = useChatStore()
+  const currentUserId = useAuthStore((state) => state.user?.userId || '')
   const [message, setMessage] = useState('')
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // Group messages by date (same as ChatWindow)
+  const groupedMessages = useMemo(() => {
+    return messages
+      .filter((msg) => msg && msg.contentText && msg.contentText.trim() !== '')
+      .reduce<Record<string, Message[]>>((acc, message) => {
+        if (!message || !message.timestamp) return acc
+        try {
+          const date = new Date(message.timestamp)
+          const dateKey = date.toISOString().split('T')[0]
+          if (!acc[dateKey]) acc[dateKey] = []
+          acc[dateKey].push(message)
+          return acc
+        } catch {
+          return acc
+        }
+      }, {})
+  }, [messages])
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!message.trim() || isSending) return
-    
     try {
       await sendMessage(message)
       setMessage('')
@@ -45,18 +68,15 @@ const MobileChatWindow = ({ onBack }: MobileChatWindowProps) => {
         >
           <ArrowLeft className="w-6 h-6" />
         </button>
-        
         <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center mr-3">
           <span className="text-white font-semibold">
             {currentConversation.displayName?.charAt(0).toUpperCase() || 'C'}
           </span>
         </div>
-        
         <div className="flex-1">
           <h3 className="font-semibold text-lg">{currentConversation.displayName}</h3>
           <p className="text-xs text-white/80">Online</p>
         </div>
-        
         <div className="flex items-center space-x-2">
           <button className="p-2 hover:bg-white/20 rounded-full transition-colors">
             <Phone className="w-5 h-5" />
@@ -69,10 +89,9 @@ const MobileChatWindow = ({ onBack }: MobileChatWindowProps) => {
           </button>
         </div>
       </div>
-      
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-blue-50/30 to-white">
-        {messages.length === 0 ? (
+        {Object.keys(groupedMessages).length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center">
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center mb-4">
               <span className="text-2xl">💬</span>
@@ -83,29 +102,21 @@ const MobileChatWindow = ({ onBack }: MobileChatWindowProps) => {
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {messages
-              .filter((msg) => msg && msg.contentText && msg.contentText.trim() !== '')
-              .map((msg) => (
-                <div 
-                  key={msg.messageId}
-                  className={`flex ${msg.senderId === 'current-user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div 
-                    className={`max-w-xs px-4 py-3 rounded-2xl ${
-                      msg.senderId === 'current-user' 
-                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-br-md' 
-                        : 'bg-white text-gray-800 rounded-bl-md shadow-sm border border-gray-100'
-                    }`}
-                  >
-                    <p className="text-sm">{msg.contentText}</p>
-                  </div>
-                </div>
+          Object.entries(groupedMessages).map(([date, dateMessages]) => (
+            <div key={`date-${date}`} className="mb-4">
+              <DateHeader date={date} />
+              {dateMessages.map((msg) => (
+                <MessageBubble
+                  key={`msg-${msg.messageId || msg.timestamp}-${msg.senderId}`}
+                  message={msg}
+                  isCurrentUser={msg.senderId === currentUserId}
+                />
               ))}
-          </div>
+            </div>
+          ))
         )}
+        <div ref={messagesEndRef} />
       </div>
-      
       {/* Message input */}
       <div className="p-4 bg-white border-t border-gray-100">
         <form onSubmit={handleSendMessage} className="flex items-center space-x-3">
