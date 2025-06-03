@@ -41,19 +41,19 @@ export const ChatInput = ({
 
   return (
     <div className="p-4 bg-white border-t border-gray-100 dark:border-gray-700">
-      <form onSubmit={onSend} className="flex items-end space-x-2">
-        <div className="flex-1 relative">
-          <div className="relative">
+      <form onSubmit={onSend} className="flex items-end justify-center">
+        <div className="flex-1 flex items-end">
+          <div className="flex items-end w-full bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-sm px-4 py-2 border border-gray-200 dark:border-gray-700">
             <textarea
               ref={textareaRef}
               value={message}
               onChange={(e) => onMessageChange(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Type a message..."
-              className="flex-1 border-0 bg-white dark:bg-gray-900 focus:outline-none placeholder-gray-400 text-gray-900 dark:text-white resize-none overflow-hidden min-h-[24px] max-h-32"
+              className="w-full border-0 bg-transparent focus:outline-none placeholder-gray-400 text-gray-900 dark:text-white resize-none overflow-hidden min-h-[32px] max-h-32 py-2 pr-20"
               rows={1}
             />
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex space-x-1">
+            <div className="absolute right-8 bottom-3 flex space-x-1">
               <button
                 type="button"
                 onClick={onAttachFile}
@@ -69,32 +69,31 @@ export const ChatInput = ({
                 <Smile className="w-5 h-5" />
               </button>
             </div>
+            {/* Emoji picker */}
+            {isEmojiPickerOpen && (
+              <div className="absolute bottom-full mb-2 right-0 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-2 grid grid-cols-6 gap-1 z-10">
+                {emojis.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    className="text-2xl hover:bg-gray-100 dark:hover:bg-gray-700 rounded p-1"
+                    onClick={() => {
+                      onMessageChange(message + emoji);
+                      setIsEmojiPickerOpen(false);
+                    }}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-          
-          {/* Emoji picker */}
-          {isEmojiPickerOpen && (
-            <div className="absolute bottom-full mb-2 right-0 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-2 grid grid-cols-6 gap-1 z-10">
-              {emojis.map((emoji) => (
-                <button
-                  key={emoji}
-                  type="button"
-                  className="text-2xl hover:bg-gray-100 dark:hover:bg-gray-700 rounded p-1"
-                  onClick={() => {
-                    onMessageChange(message + emoji);
-                    setIsEmojiPickerOpen(false);
-                  }}
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
         <button
           type="submit"
           disabled={!message.trim() || isSending}
           className={cn(
-            'p-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full',
+            'ml-3 p-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full',
             'hover:from-blue-700 hover:to-indigo-700',
             'disabled:opacity-50 disabled:cursor-not-allowed',
             'transition-all shadow-lg',
