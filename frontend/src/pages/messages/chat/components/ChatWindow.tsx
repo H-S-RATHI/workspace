@@ -1,50 +1,17 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import React from 'react';
 import { ChatHeader } from './ChatHeader';
 import { ChatInput } from './ChatInput';
-import { DateHeader } from './DateHeader';
-import { EmptyState, TypingIndicator } from './EmptyState';
-import { MessageBubble } from './MessageBubble';
+import { EmptyState } from './EmptyState';
+import { SocketWarning } from './SocketWarning';
 import { useChatStore } from '../../../../store/chatStore'
 import { useAuthStore } from '../../../../store/authStore';
-import { motion, AnimatePresence } from 'framer-motion';
-import { format, isToday, isYesterday } from 'date-fns';
+import { format} from 'date-fns';
 import type { Message } from '../../../../types/chat';
 import { useSocketStore } from '../../../../store/socketStore';
+import { MessageList } from './MessageList';
 
-// Utility function to merge class names
-function cn(...classes: (string | boolean | undefined)[]) {
-  return classes.filter(Boolean).join(' ');
-}
 
-// Utility function to get user initials
-function getInitials(name: string): string {
-  if (!name) return '';
-  return name
-    .split(' ')
-    .filter(part => part.length > 0)
-    .map(part => part[0].toUpperCase())
-    .join('')
-    .substring(0, 2);
-}
-
-// Format message timestamp
-const formatMessageTime = (timestamp: string | Date): string => {
-  try {
-    const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
-    return format(date, 'h:mm a');
-  } catch (error) {
-    console.error('Error formatting time:', error);
-    return '';
-  }
-};
-
-// Format message date header
-const formatMessageDate = (date: Date): string => {
-  if (isToday(date)) return 'Today';
-  if (isYesterday(date)) return 'Yesterday';
-  return format(date, 'MMMM d, yyyy');
-};
 
 // Memoize the component to prevent unnecessary re-renders
 const ChatWindow = () => {
@@ -78,11 +45,10 @@ const ChatWindow = () => {
   
   const [message, setMessage] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const formRef = useRef<HTMLFormElement>(null);
+
   
   // Simulate typing indicator for demo purposes
   useEffect(() => {
@@ -116,34 +82,12 @@ const ChatWindow = () => {
     try {
       await sendMessage(message);
       setMessage('');
-      setIsEmojiPickerOpen(false);
     } catch (error) {
       console.error('Failed to send message:', error);
     }
   };
   
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      formRef.current?.requestSubmit();
-    }
-  };
-  
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Handle file upload
-      console.log('Selected file:', file);
-    }
-    // Reset the input value to allow selecting the same file again
-    if (e.target) {
-      e.target.value = '';
-    }
-  };
-  
-  const toggleEmojiPicker = () => {
-    setIsEmojiPickerOpen(!isEmojiPickerOpen);
-  };
+
   
   if (!currentConversation || !currentConversation.displayName) {
     return <EmptyState title="No conversation selected" message="Select a conversation or start a new one to begin messaging" />;
@@ -175,12 +119,7 @@ const ChatWindow = () => {
   
   return (
     <div className="flex-1 flex flex-col h-full bg-gradient-to-b from-blue-50/30 to-white">
-      {/* Socket connection warning */}
-      {!isConnected && (
-        <div className="bg-red-100 text-red-700 p-2 text-center text-sm font-medium">
-          Not connected to chat server. Please check your connection or try again later.
-        </div>
-      )}
+      <SocketWarning isConnected={isConnected} />
       {/* Chat header */}
       <ChatHeader
         name={currentConversation.displayName}
@@ -192,33 +131,16 @@ const ChatWindow = () => {
       />
       
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        <AnimatePresence>
-          {messages.length === 0 ? (
-            <EmptyState />
-          ) : (
-            Object.entries(groupedMessages).map(([date, dateMessages]) => (
-              <div key={`date-${date}`} className="mb-4">
-                <DateHeader date={date} />
-                {dateMessages
-                  .filter((msg) => msg && msg.contentText && msg.contentText.trim() !== '')
-                  .map((msg) => {
-                    const messageKey = `msg-${msg.messageId || msg.timestamp}-${msg.senderId}`;
-                    return (
-                      <MessageBubble
-                        key={messageKey}
-                        message={msg}
-                        isCurrentUser={msg.senderId === currentUserId}
-                      />
-                    );
-                  })}
-              </div>
-            ))
-          )}
-          {isTyping && <TypingIndicator />}
-          <div ref={messagesEndRef} />
-        </AnimatePresence>
-      </div>
+      {messages.length === 0 ? (
+        <EmptyState />
+      ) : (
+        <MessageList
+          groupedMessages={groupedMessages}
+          currentUserId={currentUserId}
+          isTyping={isTyping}
+          messagesEndRef={messagesEndRef}
+        />
+      )}
       
       {/* Message input */}
       <ChatInput
