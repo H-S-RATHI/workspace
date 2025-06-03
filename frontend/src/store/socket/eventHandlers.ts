@@ -14,6 +14,7 @@ import type {
   UserStoppedTypingEvent
 } from './types'
 import { SOCKET_EVENTS } from './constants'
+import { useChatStore } from '../chatStore'
 // Connection Event Handlers
 export const setupConnectionHandlers = (
   socket: Socket, 
@@ -56,7 +57,22 @@ export const setupMessageHandlers = (
   set: (partial: Partial<SocketStore>) => void
 ) => {
   socket.on(SOCKET_EVENTS.NEW_MESSAGE, (message: Message) => {
-    // This will be handled by the chat store or components
+    // Update chat store if the message belongs to the current conversation
+    const chatStore = useChatStore.getState();
+    const { currentConversation, messages } = chatStore;
+    if (currentConversation && message.convoId === currentConversation.convoId) {
+      useChatStore.setState((state) => ({
+        messages: [...state.messages, message],
+        conversations: state.conversations.map(conv =>
+          conv.convoId === currentConversation.convoId
+            ? { ...conv, lastMessage: message, lastMessageAt: message.timestamp }
+            : conv
+        ).sort((a, b) =>
+          new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+        )
+      }));
+    }
+    // Optionally, update conversation list for other conversations if needed
     console.log('New message received:', message)
   })
   socket.on(SOCKET_EVENTS.MESSAGE_DELIVERED, ({ messageId }: MessageDeliveredEvent) => {
