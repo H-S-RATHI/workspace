@@ -84,22 +84,24 @@ const MobileChatWindow = ({ onBack }: MobileChatWindowProps) => {
           </div>
         ) : (
           <div className="space-y-4">
-            {messages.map((msg) => (
-              <div 
-                key={msg.messageId}
-                className={`flex ${msg.senderId === 'current-user' ? 'justify-end' : 'justify-start'}`}
-              >
+            {messages
+              .filter((msg) => msg && msg.contentText && msg.contentText.trim() !== '')
+              .map((msg) => (
                 <div 
-                  className={`max-w-xs px-4 py-3 rounded-2xl ${
-                    msg.senderId === 'current-user' 
-                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-br-md' 
-                      : 'bg-white text-gray-800 rounded-bl-md shadow-sm border border-gray-100'
-                  }`}
+                  key={msg.messageId}
+                  className={`flex ${msg.senderId === 'current-user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  <p className="text-sm">{msg.contentText}</p>
+                  <div 
+                    className={`max-w-xs px-4 py-3 rounded-2xl ${
+                      msg.senderId === 'current-user' 
+                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-br-md' 
+                        : 'bg-white text-gray-800 rounded-bl-md shadow-sm border border-gray-100'
+                    }`}
+                  >
+                    <p className="text-sm">{msg.contentText}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
         )}
       </div>
