@@ -6,8 +6,8 @@ import { EmptyState } from './EmptyState';
 import { SocketWarning } from './SocketWarning';
 import { useChatStore } from '../../../../store/chatStore'
 import { useAuthStore } from '../../../../store/authStore';
-import { format} from 'date-fns';
-import type { Message } from '../../../../types/chat';
+import { format } from 'date-fns';
+import type { Message, ConversationMember } from '../../../../types/chat';
 import { useSocketStore } from '../../../../store/socketStore';
 import { MessageList } from './MessageList';
 import { useCall } from '../../calls/hooks/useCall';
@@ -38,20 +38,39 @@ const ChatWindow = () => {
   const messages = useChatStore((state) => state.messages || []);
   const sendMessage = useChatStore((state) => state.sendMessage);
   const isSending = useChatStore((state) => state.isSending || false);
-  const currentUserId = useAuthStore((state) => state.user?.userId || '');
+  const currentUser = useAuthStore((state) => state.user);
+  const currentUserId = currentUser?.userId || '';
   const { isConnected } = useSocketStore();
   const { initiateCall } = useCall();
   
+  // Get the other user from the conversation
+  const otherUser = currentConversation?.members?.find(
+    (user: ConversationMember) => user.userId !== currentUserId
+  ) as ConversationMember | undefined;
+  
+  // Log the current state for debugging
+  useEffect(() => {
+    if (import.meta.env.MODE === 'development') {
+      console.log('Current conversation:', currentConversation);
+      console.log('Current user ID:', currentUserId);
+      console.log('Other user:', otherUser);
+    }
+  }, [currentConversation, currentUserId, otherUser]);
+  
   const handleVideoCallClick = async () => {
-    if (!otherUser) return;
+    if (!otherUser) {
+      console.error('Cannot start video call: No other user in conversation');
+      alert('Cannot start video call: No user selected');
+      return;
+    }
     
     try {
       console.log('Initiating video call with user:', otherUser.userId);
-      await initiateCall({
+      const callId = await initiateCall({
         targetUserId: otherUser.userId,
         callType: 'video',
       });
-      console.log('Video call initiated successfully');
+      console.log('Video call initiated successfully with ID:', callId);
     } catch (error) {
       console.error('Error initiating video call:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to start video call';
@@ -60,15 +79,19 @@ const ChatWindow = () => {
   };
 
   const handleAudioCallClick = async () => {
-    if (!otherUser) return;
+    if (!otherUser) {
+      console.error('Cannot start audio call: No other user in conversation');
+      alert('Cannot start audio call: No user selected');
+      return;
+    }
     
     try {
       console.log('Initiating audio call with user:', otherUser.userId);
-      await initiateCall({
+      const callId = await initiateCall({
         targetUserId: otherUser.userId,
         callType: 'audio',
       });
-      console.log('Audio call initiated successfully');
+      console.log('Audio call initiated successfully with ID:', callId);
     } catch (error) {
       console.error('Error initiating audio call:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to start audio call';
@@ -152,10 +175,7 @@ const ChatWindow = () => {
     })));
   }, [groupedMessages]);
   
-  // Find the other user in the conversation (for 1:1 chats)
-  const otherUser = currentConversation && !currentConversation.isGroup
-    ? currentConversation.members.find(m => m.userId !== currentUserId)
-    : null;
+  // Use the otherUser defined at the top of the component
   
   return (
     <div className="flex-1 flex flex-col h-full bg-gradient-to-b from-blue-50/30 to-white">
