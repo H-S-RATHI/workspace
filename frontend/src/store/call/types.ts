@@ -6,10 +6,11 @@ export interface CallState {
 }
 
 export interface CallActions {
-  initiateCall: (targetUserId: string, callType: 'video' | 'audio') => void;
-  endCall: () => void;
-  answerCall: () => void;
-  rejectCall: () => void;
+  initiateCall: (params: { targetUserId: string; callType: 'video' | 'audio' }) => Promise<{ callId: string }>;
+  endCall: (callId: string) => void;
+  answerCall: (callId: string, answer: any) => void;
+  rejectCall: (callId: string) => void;
+  setCallModalOpen: (isOpen: boolean) => void;
 }
 
-export type CallStore = CallState & CallActions; 
+export type CallStore = CallState & CallActions;

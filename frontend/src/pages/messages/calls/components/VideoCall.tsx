@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { useSocketStore } from '../../store/socketStore'
-import Button from './Button'
+import { useSocketStore } from '../../../../store/socketStore'
+import Button from '../../../../components/ui/Button'
 
 interface VideoCallProps {
   callId: string

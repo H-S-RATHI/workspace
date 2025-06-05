@@ -5,5 +5,10 @@ import { createCallActions } from './actions';
 
 export const useCallStore = create<CallStore>((set, get) => ({
   ...INITIAL_CALL_STATE,
+  
+  // Add modal state management
+  setCallModalOpen: (isOpen) => set({ isCallModalOpen: isOpen }),
+  
+  // Add call actions
   ...createCallActions(set, get),
-})); 
+}));

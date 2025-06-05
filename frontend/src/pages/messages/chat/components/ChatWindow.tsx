@@ -42,6 +42,39 @@ const ChatWindow = () => {
   const { isConnected } = useSocketStore();
   const { initiateCall } = useCall();
   
+  const handleVideoCallClick = async () => {
+    if (!otherUser) return;
+    
+    try {
+      console.log('Initiating video call with user:', otherUser.userId);
+      await initiateCall({
+        targetUserId: otherUser.userId,
+        callType: 'video',
+      });
+      console.log('Video call initiated successfully');
+    } catch (error) {
+      console.error('Error initiating video call:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to start video call';
+      alert(`Error: ${errorMessage}`);
+    }
+  };
+
+  const handleAudioCallClick = async () => {
+    if (!otherUser) return;
+    
+    try {
+      console.log('Initiating audio call with user:', otherUser.userId);
+      await initiateCall({
+        targetUserId: otherUser.userId,
+        callType: 'audio',
+      });
+      console.log('Audio call initiated successfully');
+    } catch (error) {
+      console.error('Error initiating audio call:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to start audio call';
+      alert(`Error: ${errorMessage}`);
+    }
+  };
 
   
   
@@ -133,12 +166,8 @@ const ChatWindow = () => {
         status={isTyping ? 'typing' : 'online'}
         onMenuClick={() => setIsMenuOpen(!isMenuOpen)}
         onSearchClick={() => {}}
-        onCallClick={() => {
-          if (otherUser) initiateCall(otherUser.userId, 'audio');
-        }}
-        onVideoCallClick={() => {
-          if (otherUser) initiateCall(otherUser.userId, 'video');
-        }}
+        onCallClick={handleAudioCallClick}
+        onVideoCallClick={handleVideoCallClick}
       />
       
       {/* Messages area */}

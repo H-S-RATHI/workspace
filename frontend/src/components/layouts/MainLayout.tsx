@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import MobileNavigation from '../ui/MobileNavigation';
 import DesktopSidebar from '../ui/DesktopSidebar';
 import TopBar from '../ui/TopBar';
-import VideoCall from '../ui/VideoCall';
+import VideoCall from '../../pages/messages/calls/components/VideoCall';
 import { useAuthStore } from '../../store/authStore';
 import { useCall } from '../../pages/messages/calls/hooks/useCall';
 import { colors, getSectionColors } from '../../styles/colors';
