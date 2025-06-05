@@ -21,8 +21,9 @@ export const MessageList: React.FC<MessageListProps> = ({ groupedMessages, curre
             <DateHeader date={date} />
             {dateMessages
               .filter((msg) => msg && msg.contentText && msg.contentText.trim() !== '')
-              .map((msg) => {
-                const messageKey = `msg-${msg.messageId || msg.timestamp}-${msg.senderId}`;
+              .map((msg, index) => {
+                // Generate a unique key using messageId, timestamp, senderId and index as fallback
+                const messageKey = `msg-${msg.messageId || ''}-${msg.timestamp || ''}-${msg.senderId || 'unknown'}-${index}`;
                 return (
                   <MessageBubble
                     key={messageKey}

@@ -15,6 +15,7 @@ import type {
 } from './types'
 import { SOCKET_EVENTS } from './constants'
 import { useChatStore } from '../chatStore'
+import { useAuthStore } from '../authStore'
 // Connection Event Handlers
 export const setupConnectionHandlers = (
   socket: Socket, 
@@ -52,28 +53,47 @@ export const setupPresenceHandlers = (
   })
 }
 // Message Event Handlers
-export const setupMessageHandlers = (
-  socket: Socket,
-  set: (partial: Partial<SocketStore>) => void
-) => {
+export const setupMessageHandlers = (socket: Socket) => {
   socket.on(SOCKET_EVENTS.NEW_MESSAGE, (message: Message) => {
-    // Update chat store if the message belongs to the current conversation
     const chatStore = useChatStore.getState();
-    const { currentConversation, messages } = chatStore;
-    if (currentConversation && message.convoId === currentConversation.convoId) {
-      useChatStore.setState((state) => ({
-        messages: [...state.messages, message],
-        conversations: state.conversations.map(conv =>
-          conv.convoId === currentConversation.convoId
-            ? { ...conv, lastMessage: message, lastMessageAt: message.timestamp }
-            : conv
-        ).sort((a, b) =>
-          new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
-        )
-      }));
+    const { currentConversation } = chatStore;
+    const currentUser = useAuthStore.getState().user;
+    
+    // Skip if this is our own message (already added to UI when sent)
+    if (message.senderId === currentUser?.userId) {
+      console.log('Skipping own message from socket:', message.messageId);
+      return;
     }
-    // Optionally, update conversation list for other conversations if needed
-    console.log('New message received:', message)
+    
+    // Only process if this is for the current conversation
+    if (currentConversation && message.convoId === currentConversation.convoId) {
+      console.log('Adding new message from other user:', message);
+      useChatStore.setState((state) => {
+        // Check if message already exists to prevent duplicates
+        const messageExists = state.messages.some(m => 
+          m.messageId === message.messageId || 
+          (m.timestamp === message.timestamp && m.senderId === message.senderId)
+        );
+        
+        if (messageExists) {
+          console.log('Message already exists, skipping:', message.messageId);
+          return state;
+        }
+        
+        return {
+          messages: [...state.messages, message],
+          conversations: state.conversations.map(conv =>
+            conv.convoId === currentConversation.convoId
+              ? { ...conv, lastMessage: message, lastMessageAt: message.timestamp }
+              : conv
+          ).sort((a, b) =>
+            new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+          )
+        };
+      });
+    } else {
+      console.log('Message received for different conversation:', message.convoId);
+    }
   })
   socket.on(SOCKET_EVENTS.MESSAGE_DELIVERED, ({ messageId }: MessageDeliveredEvent) => {
     console.log('Message delivered:', messageId)
@@ -114,10 +134,7 @@ export const setupTypingHandlers = (
   })
 }
 // Call Event Handlers
-export const setupCallHandlers = (
-  socket: Socket,
-  set: (partial: Partial<SocketStore>) => void
-) => {
+export const setupCallHandlers = (socket: Socket) => {
   socket.on(SOCKET_EVENTS.INCOMING_CALL, (data: CallEvent) => {
     const { callId, callerId, callerUsername, callType } = data
     console.log('Incoming call:', { callId, callerId, callerUsername, callType })
@@ -138,10 +155,7 @@ export const setupCallHandlers = (
   })
 }
 // Error Event Handlers
-export const setupErrorHandlers = (
-  socket: Socket,
-  set: (partial: Partial<SocketStore>) => void
-) => {
+export const setupErrorHandlers = (socket: Socket) => {
   socket.on(SOCKET_EVENTS.ERROR, (data: ErrorEvent) => {
     toast.error(data.message)
   })
@@ -156,8 +170,8 @@ export const setupSocketEventHandlers = (
   
   setupConnectionHandlers(socket, set)
   setupPresenceHandlers(socket, set, get)
-  setupMessageHandlers(socket, set)
+  setupMessageHandlers(socket)
   setupTypingHandlers(socket, set, get)
-  setupCallHandlers(socket, set)
-  setupErrorHandlers(socket, set)
+  setupCallHandlers(socket)
+  setupErrorHandlers(socket)
 }

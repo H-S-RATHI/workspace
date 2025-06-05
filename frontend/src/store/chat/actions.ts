@@ -1,13 +1,12 @@
 import { chatAPI, usersAPI } from '../../services/api'
 import { useSocketStore } from '../socketStore'
+import { useAuthStore } from '../authStore'
 import type { 
   ChatStore, 
   CreateConversationData, 
-  SendMessageData, 
-  Message, 
-  Conversation 
+  Message
 } from './types'
-import { INITIAL_CHAT_STATE, MESSAGE_TYPES, PAGINATION_CONFIG } from './constants'
+import { INITIAL_CHAT_STATE, PAGINATION_CONFIG } from './constants'
 // Conversation Management Actions
 export const createConversationActions = (
   set: (partial: Partial<ChatStore> | ((state: ChatStore) => Partial<ChatStore>)) => void,
@@ -112,17 +111,23 @@ export const createMessageActions = (
     content: string, 
     messageType: 'TEXT' | 'IMAGE' | 'VOICE' | 'LOCATION' | 'PAYMENT' = 'TEXT'
   ) => {
-    const { currentConversation, messages } = get()
+    const { currentConversation } = get()
     if (!currentConversation) return
     
     set({ isSending: true, error: null })
+    
+    // Get current user from auth store
+    const currentUser = useAuthStore.getState().user;
+    if (!currentUser) {
+      throw new Error('User not authenticated');
+    }
     
     // Create temp message outside try block to make it accessible in catch
     const tempMessage: Message = {
       messageId: `temp-${Date.now()}`,
       convoId: currentConversation.convoId,
-      senderId: 'current-user', // This will be replaced by the actual user ID from the backend
-      senderUsername: 'You',
+      senderId: currentUser.userId,
+      senderUsername: currentUser.username || 'You',
       msgType: messageType as any,
       contentText: content,
       timestamp: new Date().toISOString(),
@@ -131,7 +136,8 @@ export const createMessageActions = (
     
     try {
       const socket = useSocketStore.getState().socket
-      const messageData: SendMessageData = { message: content, messageType }
+      // Message data will be sent via socket
+      // The socket.emit call below uses content and messageType directly
       
       // Add the temp message to the UI
       set(state => ({
@@ -193,10 +199,7 @@ export const createMessageActions = (
   }
 })
 // Search Actions
-export const createSearchActions = (
-  set: (partial: Partial<ChatStore> | ((state: ChatStore) => Partial<ChatStore>)) => void,
-  get: () => ChatStore
-) => ({
+export const createSearchActions = () => ({
   // Search for users to start a new chat
   searchUsers: async (query: string) => {
     try {
@@ -213,8 +216,7 @@ export const createSearchActions = (
 })
 // Utility Actions
 export const createUtilityActions = (
-  set: (partial: Partial<ChatStore> | ((state: ChatStore) => Partial<ChatStore>)) => void,
-  get: () => ChatStore
+  set: (partial: Partial<ChatStore> | ((state: ChatStore) => Partial<ChatStore>)) => void
 ) => ({
   // Reset the store
   reset: () => set(INITIAL_CHAT_STATE)
