@@ -25,9 +25,11 @@ const ChatWindow = () => {
   // Local state
   const [message, setMessage] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isTyping, setIsTyping] = useState(false);
+  const [isOtherUserTyping, setIsOtherUserTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const socket = useSocketStore(state => state.socket);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Memoize the other user from the conversation
   const otherUser = useMemo(() => {
@@ -78,21 +80,59 @@ const ChatWindow = () => {
     }
   }, [otherUser, initiateCall]);
 
-  // Typing indicator effect
+  // Handle typing indicator for current user
   useEffect(() => {
-    let timeout: ReturnType<typeof setTimeout>;
+    if (!currentConversation?.convoId || !socket) return;
     
-    if (message) {
-      setIsTyping(true);
-      timeout = setTimeout(() => {
-        setIsTyping(false);
-      }, 2000);
-    } else {
-      setIsTyping(false);
+    // Clear any existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
     }
     
-    return () => clearTimeout(timeout);
-  }, [message]);
+    if (message.trim()) {
+      // Emit typing started event
+      socket.emit('typing', { conversationId: currentConversation.convoId });
+      
+      // Set a timeout to stop typing indicator after 2 seconds of inactivity
+      typingTimeoutRef.current = setTimeout(() => {
+        socket.emit('stop_typing', { conversationId: currentConversation.convoId });
+      }, 2000);
+    } else {
+      // If message is empty, emit stop typing immediately
+      socket.emit('stop_typing', { conversationId: currentConversation.convoId });
+    }
+    
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, [message, currentConversation?.convoId, socket]);
+  
+  // Listen for other user's typing status
+  useEffect(() => {
+    if (!socket) return;
+    
+    const handleTyping = (data: { userId: string; conversationId: string }) => {
+      if (data.conversationId === currentConversation?.convoId && data.userId !== currentUserId) {
+        setIsOtherUserTyping(true);
+      }
+    };
+    
+    const handleStopTyping = (data: { userId: string; conversationId: string }) => {
+      if (data.conversationId === currentConversation?.convoId && data.userId !== currentUserId) {
+        setIsOtherUserTyping(false);
+      }
+    };
+    
+    socket.on('typing', handleTyping);
+    socket.on('stop_typing', handleStopTyping);
+    
+    return () => {
+      socket.off('typing', handleTyping);
+      socket.off('stop_typing', handleStopTyping);
+    };
+  }, [socket, currentConversation?.convoId, currentUserId]);
   
   // Auto-scroll to bottom when messages change
   const scrollToBottom = useCallback(() => {
@@ -101,7 +141,7 @@ const ChatWindow = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isTyping, scrollToBottom]);
+  }, [messages, isOtherUserTyping, scrollToBottom]);
   
   const handleSendMessage = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,7 +187,7 @@ const ChatWindow = () => {
       
       <ChatHeader
         name={currentConversation.displayName}
-        status={isTyping ? 'typing' : 'online'}
+        status={isOtherUserTyping ? 'typing' : 'online'}
         onMenuClick={() => setIsMenuOpen(!isMenuOpen)}
         onSearchClick={() => {}}
         onCallClick={handleAudioCallClick}
@@ -160,7 +200,7 @@ const ChatWindow = () => {
         <MessageList
           groupedMessages={groupedMessages}
           currentUserId={currentUserId}
-          isTyping={isTyping}
+          isTyping={isOtherUserTyping}
           messagesEndRef={messagesEndRef}
         />
       )}
