@@ -35,7 +35,7 @@ export const MessageList: React.FC<MessageListProps> = ({ groupedMessages, curre
           </div>
         ))
       )}
-      {isTyping && <TypingIndicator />}
+      {isTyping && <TypingIndicator key="typing-indicator" />}
       <div ref={messagesEndRef} />
     </AnimatePresence>
   </div>

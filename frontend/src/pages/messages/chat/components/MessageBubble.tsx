@@ -32,13 +32,13 @@ export const MessageBubble = ({
   useEffect(() => {
     if (typeof process !== 'undefined' && process.env.NODE_ENV === 'development') {
       console.log('Rendering MessageBubble:', { 
-        id: message.id, 
+        messageId: message.messageId, 
         isCurrentUser,
         showTime,
         timestamp: message.timestamp
       });
     }
-  }, [message, isCurrentUser]);
+  }, [message, isCurrentUser, showTime, message.timestamp, message.messageId]);
   
   // Memoize the status indicator to prevent re-renders
   const statusIndicator = useMemo(() => {
@@ -55,7 +55,6 @@ export const MessageBubble = ({
   
   return (
     <motion.div
-      key={`message-${message.messageId}`}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
