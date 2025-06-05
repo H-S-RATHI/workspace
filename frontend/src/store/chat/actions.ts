@@ -12,25 +12,40 @@ export const createConversationActions = (
   set: (partial: Partial<ChatStore> | ((state: ChatStore) => Partial<ChatStore>)) => void,
   get: () => ChatStore
 ) => ({
-  // Fetch all conversations for the current user with retry logic
-  fetchConversations: async () => {
-    set({
-      isLoading: true,
-      error: null,
-      lastFetchAttempt: Date.now()
-    });
+  // Fetch all conversations for the current user with optimized error handling
+  fetchConversations: async (options: { force?: boolean } = {}) => {
+    const { force = false } = options;
+    const state = get();
+    
+    // Skip if already loading
+    if (state.isLoading && !force) {
+      return;
+    }
+    
+    // Skip if we've fetched recently and it's not a forced refresh
+    const now = Date.now();
+    if (!force && state.lastFetchTime && (now - state.lastFetchTime < 30000)) {
+      return;
+    }
     
     try {
-      const response = await chatAPI.getConversations()
+      set({
+        isLoading: true,
+        error: null,
+        lastFetchAttempt: now
+      });
+      
+      const response = await chatAPI.getConversations();
       
       if (response?.success) {
-        const update = {
+        set({
           conversations: response.conversations,
-          lastFetchTime: Date.now(),
-          lastFetchSuccess: true
-        };
-        set(update);
-        return;
+          lastFetchTime: now,
+          lastFetchSuccess: true,
+          isLoading: false,
+          error: null
+        });
+        return response.conversations;
       }
       
       throw new Error('Failed to load conversations');
@@ -38,16 +53,14 @@ export const createConversationActions = (
       const errorMessage = error.response?.data?.message || error.message || 'Failed to load conversations';
       console.error('Error fetching conversations:', error);
       
-      // Only update error state
       set({
         error: errorMessage,
-        lastFetchSuccess: false
+        lastFetchSuccess: false,
+        isLoading: false
       });
       
       // Re-throw to allow components to handle the error if needed
       throw error;
-    } finally {
-      set({ isLoading: false });
     }
   },
   // Create a new conversation

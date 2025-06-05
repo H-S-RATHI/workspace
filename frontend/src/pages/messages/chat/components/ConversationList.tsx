@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
-import { Search, Plus } from 'lucide-react'
-import { useChatStore } from '../../../../store/chatStore'
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Search, Plus } from 'lucide-react';
+import debounce from 'lodash.debounce';
+import { useChatStore } from '../../../../store/chatStore';
 
 export const ConversationList = () => {
   const { 
@@ -18,46 +19,108 @@ export const ConversationList = () => {
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [isRetrying, setIsRetrying] = useState(false)
   
-  // Fetch conversations on mount with error handling
-  useEffect(() => {
-    const loadConversations = async () => {
+  const isMounted = useRef(true);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const lastFetchTime = useRef(0);
+  const MIN_FETCH_INTERVAL = 30000; // 30 seconds minimum between fetches
+
+  // Debounced fetch conversations
+  const debouncedFetchConversations = useCallback(
+    debounce(async (force = false) => {
+      if (!isMounted.current) return;
+      
+      const now = Date.now();
+      const timeSinceLastFetch = now - lastFetchTime.current;
+      
+      // Skip if we've fetched recently and it's not a forced refresh
+      if (!force && timeSinceLastFetch < MIN_FETCH_INTERVAL) {
+        return;
+      }
+      
       try {
         await fetchConversations();
+        lastFetchTime.current = Date.now();
       } catch (error) {
-        // Error is already handled in the store
-        console.log('Failed to load conversations, will retry...');
+        console.error('Failed to load conversations:', error);
+        // Don't update state if component is unmounted
+        if (!isMounted.current) return;
+      } finally {
+        if (isMounted.current) {
+          setIsInitialLoad(false);
+        }
+      }
+    }, 500), // Debounce time of 500ms
+    [fetchConversations]
+  );
+
+  // Initial load and setup
+  useEffect(() => {
+    isMounted.current = true;
+    
+    // Initial fetch
+    debouncedFetchConversations();
+    
+    // Set up visibility change listener to refresh when tab becomes visible
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        debouncedFetchConversations();
       }
     };
     
-    loadConversations();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     
-    // Set up polling to retry failed requests
-    const pollInterval = setInterval(() => {
-      const { isLoading, error } = useChatStore.getState();
-      if (error && !isLoading) {
-        loadConversations();
-      }
-    }, 10000); // Retry every 10 seconds if there's an error
-    
-    return () => clearInterval(pollInterval);
-  }, [fetchConversations])
-  
-  // Handle search
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!searchQuery.trim()) return
-    
-    try {
-      const results = await searchUsers(searchQuery)
-      setSearchResults(results)
-    } catch (error) {
-      console.error('Error searching users:', error)
-      setSearchResults([])
-    } finally {
+    // Cleanup
+    return () => {
+      isMounted.current = false;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      debouncedFetchConversations.cancel();
+    };
+  }, [debouncedFetchConversations]);
 
-    }
-  }
-  
+  // Debounced search handler
+  const debouncedSearch = useCallback(
+    debounce(async (query: string) => {
+      if (!query.trim()) {
+        setSearchResults([]);
+        return;
+      }
+      
+      try {
+        const results = await searchUsers(query);
+        if (isMounted.current) {
+          setSearchResults(results);
+        }
+      } catch (error) {
+        console.error('Search error:', error);
+        if (isMounted.current) {
+          setSearchResults([]);
+        }
+      }
+    }, 300), // 300ms debounce
+    [searchUsers]
+  );
+
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+      debouncedFetchConversations.cancel();
+      debouncedSearch.cancel();
+    };
+  }, [debouncedFetchConversations, debouncedSearch]);
+
+  // Handle search input change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    debouncedSearch(query);
+  };
+
+  // Handle search form submit
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    debouncedSearch(searchQuery);
+  };
+
   // Start a new conversation
   const startNewChat = async (userId: string) => {
     try {
@@ -74,31 +137,36 @@ export const ConversationList = () => {
       console.error('Error starting new chat:', error)
     }
   }
-  
+
+
   return (
-    <div className="w-80 border-r border-gray-200 bg-white flex flex-col shadow-sm">
+    <div className="w-80 border-r border-gray-200 bg-white flex flex-col shadow-sm h-full">
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold">Messages</h2>
-          <button className="p-2 hover:bg-white/20 rounded-full transition-colors">
+          <button 
+            className="p-2 hover:bg-white/20 rounded-full transition-colors"
+            aria-label="New conversation"
+          >
             <Plus className="w-5 h-5" />
           </button>
         </div>
         
         {/* Search bar */}
-        <form onSubmit={handleSearch} className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-4 w-4 text-gray-400" />
-          </div>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search conversations..."
-            className="block w-full pl-10 pr-3 py-2 border-0 rounded-lg bg-white/20 backdrop-blur-sm placeholder-white/70 text-white focus:outline-none focus:ring-2 focus:ring-white/30 focus:bg-white/30"
-          />
-        </form>
+        <div className="relative">
+          <form onSubmit={handleSearch}>
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search or start new chat"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              value={searchQuery}
+              onChange={handleSearchChange}
+              aria-label="Search conversations or users"
+            />
+          </form>
+        </div>
       </div>
       
       {/* Search results */}
