@@ -49,13 +49,16 @@ const StatusViewer: React.FC<StatusViewerProps> = ({
   const currentStatus = statuses[currentIndex];
   const STORY_DURATION = 5000; // 5 seconds per story
 
+  // Handle marking status as viewed
   useEffect(() => {
-    if (!currentStatus || isPaused) return;
-
-    // Mark as viewed
-    if (!currentStatus.hasViewed) {
+    if (currentStatus && !currentStatus.hasViewed) {
       onViewStatus(currentStatus.statusId);
     }
+  }, [currentStatus, onViewStatus]);
+
+  // Handle progress bar animation
+  useEffect(() => {
+    if (!currentStatus || isPaused) return;
 
     const interval = setInterval(() => {
       setProgress((prev) => {
@@ -73,7 +76,7 @@ const StatusViewer: React.FC<StatusViewerProps> = ({
     }, 100);
 
     return () => clearInterval(interval);
-  }, [currentIndex, currentStatus, isPaused, onNext, onClose, onViewStatus]);
+  }, [currentIndex, currentStatus, isPaused, onNext, onClose, statuses.length]);
 
   useEffect(() => {
     setProgress(0);
