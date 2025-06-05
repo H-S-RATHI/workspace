@@ -1,49 +1,177 @@
-import { useState, useMemo, useRef } from 'react'
-import { ArrowLeft, Phone, Video, MoreVertical } from 'lucide-react'
-import { useChatStore } from '../../../../store/chatStore'
-import { useAuthStore } from '../../../../store/authStore'
-import { DateHeader } from './DateHeader'
-import { MessageBubble } from './MessageBubble'
-import type { Message } from '../../../../types/chat'
+import { useMemo, useRef, useEffect, useCallback, useState } from 'react';
+import { ArrowLeft, Phone, Video, MoreVertical } from 'lucide-react';
+import { useChatStore } from '../../../../store/chat';
+import { useAuthStore } from '../../../../store/auth';
+import { MessageBubble } from './MessageBubble';
+import { format, parseISO, isToday, isYesterday } from 'date-fns';
+import type { Message } from '../../../../types/chat';
+
+// Simple DateHeader component
+type DateHeaderProps = {
+  date: string;
+};
+
+const DateHeader = ({ date }: DateHeaderProps) => {
+  try {
+    const dateObj = parseISO(date);
+    let displayDate: string;
+    
+    if (isToday(dateObj)) {
+      displayDate = 'Today';
+    } else if (isYesterday(dateObj)) {
+      displayDate = 'Yesterday';
+    } else {
+      displayDate = format(dateObj, 'MMMM d, yyyy');
+    }
+    
+    return (
+      <div className="flex items-center my-4">
+        <div className="flex-1 border-t border-gray-200"></div>
+        <span className="px-3 text-xs text-gray-500 font-medium">
+          {displayDate}
+        </span>
+        <div className="flex-1 border-t border-gray-200"></div>
+      </div>
+    );
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return null;
+  }
+};
 
 interface MobileChatWindowProps {
   onBack: () => void
 }
 
 const MobileChatWindow = ({ onBack }: MobileChatWindowProps) => {
-  const { currentConversation, messages, sendMessage, isSending } = useChatStore()
-  const currentUserId = useAuthStore((state) => state.user?.userId || '')
-  const [message, setMessage] = useState('')
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const {
+    currentConversation,
+    messages = [],
+    sendMessage: sendMessageAction,
+    isSending = false,
+    hasMoreMessages = false,
+    isFetchingMore = false,
+    loadMoreMessages,
+    error: chatError
+  } = useChatStore();
+  
+  const currentUser = useAuthStore((state) => state.user);
+  const currentUserId = currentUser?.userId || '';
+  const [message, setMessage] = useState('');
+  
+  // Refs for scroll handling
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const isScrolledToBottom = useRef(true);
+  const prevMessagesLength = useRef(messages.length);
+  const isInitialLoad = useRef(true);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Group messages by date (same as ChatWindow)
-  const groupedMessages = useMemo(() => {
-    return messages
-      .filter((msg) => msg && msg.contentText && msg.contentText.trim() !== '')
-      .reduce<Record<string, Message[]>>((acc, message) => {
-        if (!message || !message.timestamp) return acc
-        try {
-          const date = new Date(message.timestamp)
-          const dateKey = date.toISOString().split('T')[0]
-          if (!acc[dateKey]) acc[dateKey] = []
-          acc[dateKey].push(message)
-          return acc
-        } catch {
-          return acc
-        }
-      }, {})
-  }, [messages])
-
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!message.trim() || isSending) return
-    try {
-      await sendMessage(message)
-      setMessage('')
-    } catch (error) {
-      console.error('Failed to send message:', error)
+  // Handle scroll events to detect user scrolling up
+  const handleScroll = useCallback(() => {
+    if (!messagesContainerRef.current) return;
+    
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+    const isAtBottom = scrollHeight - (scrollTop + clientHeight) < 100; // 100px threshold
+    isScrolledToBottom.current = isAtBottom;
+    
+    // Load more messages when scrolling near the top
+    if (scrollTop < 100 && hasMoreMessages && !isFetchingMore) {
+      loadMoreMessages();
     }
-  }
+  }, [hasMoreMessages, isFetchingMore, loadMoreMessages]);
+  
+  // Auto-scroll to bottom when new messages arrive and user is at bottom
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
+    if (messagesEndRef.current && isScrolledToBottom.current) {
+      messagesEndRef.current.scrollIntoView({ behavior });
+    }
+  }, []);
+
+  // Handle initial load and new messages
+  useEffect(() => {
+    if (isInitialLoad.current && messages.length > 0) {
+      // On initial load, scroll to bottom immediately
+      setTimeout(() => scrollToBottom('auto'), 0);
+      isInitialLoad.current = false;
+    } else if (prevMessagesLength.current < messages.length) {
+      // New message added, scroll to bottom if user is at bottom
+      scrollToBottom();
+    }
+    prevMessagesLength.current = messages.length;
+  }, [messages.length, scrollToBottom]);
+  
+  // Set up scroll event listener
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      return () => container.removeEventListener('scroll', handleScroll);
+    }
+  }, [handleScroll]);
+
+  // Debug log to check messages and current conversation
+  useEffect(() => {
+    console.log('Mobile - Current Conversation:', currentConversation);
+    console.log('Mobile - Messages:', messages);
+  }, [currentConversation, messages]);
+
+  // Group messages by date
+  const groupedMessages = useMemo(() => {
+    console.log('Mobile - Grouping messages. Total messages:', messages?.length || 0);
+    return messages.reduce<Record<string, Message[]>>((acc, msg) => {
+      if (!msg?.timestamp) return acc;
+      try {
+        const date = new Date(msg.timestamp);
+        const dateKey = format(date, 'yyyy-MM-dd');
+        if (!acc[dateKey]) acc[dateKey] = [];
+        acc[dateKey].push(msg);
+        return acc;
+      } catch (error) {
+        console.error('Error processing message date:', error);
+        return acc;
+      }
+    }, {});
+  }, [messages]);
+
+  // Typing indicator handler (placeholder - implement with socket.io)
+  const handleTyping = useCallback(() => {
+    if (!currentConversation) return;
+    
+    // Clear any existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    
+    // You can add socket.emit('typing', ...) here if needed
+    
+    // Set timeout to stop typing after 2 seconds of inactivity
+    typingTimeoutRef.current = setTimeout(() => {
+      // You can add socket.emit('stop_typing', ...) here if needed
+    }, 2000);
+  }, [currentConversation]);
+
+  // Handle sending a message
+  const handleSendMessage = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!message.trim() || isSending || !currentConversation) return;
+    
+    try {
+      await sendMessageAction(message);
+      setMessage('');
+    } catch (error) {
+      console.error('Failed to send message:', error);
+    }
+  }, [message, isSending, currentConversation, sendMessageAction]);
+  
+  // Clean up timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, []);
 
   if (!currentConversation) {
     return (

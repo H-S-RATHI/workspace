@@ -6,6 +6,12 @@ export const INITIAL_CHAT_STATE: ChatState = {
   isLoading: false,
   isSending: false,
   error: null,
+  currentPage: 1,
+  hasMoreMessages: true,
+  isFetchingMore: false,
+  lastFetchAttempt: 0,
+  lastFetchTime: 0,
+  lastFetchSuccess: false
 }
 export const MESSAGE_TYPES = {
   TEXT: 'TEXT',

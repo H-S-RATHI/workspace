@@ -12,7 +12,21 @@ const ChatTab = () => {
   const navigate = useNavigate()
   const [isMobile, setIsMobile] = useState(false)
   const [showChat, setShowChat] = useState(false)
-  const { currentConversation } = useChatStore()
+  const { currentConversation, fetchConversations, fetchMessages } = useChatStore()
+
+  // Fetch conversations on mount
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchConversations()
+    }
+  }, [isAuthenticated, fetchConversations])
+
+  // Fetch messages when current conversation changes
+  useEffect(() => {
+    if (currentConversation?.convoId) {
+      fetchMessages(currentConversation.convoId)
+    }
+  }, [currentConversation?.convoId, fetchMessages])
 
   useEffect(() => {
     if (!isAuthenticated) {

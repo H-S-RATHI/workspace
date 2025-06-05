@@ -1,4 +1,5 @@
 export interface Message {
+  id: string; // Unique message ID (same as messageId for backward compatibility)
   messageId: string
   convoId: string
   senderId: string

@@ -9,6 +9,9 @@ export interface ChatState {
   lastFetchAttempt?: number
   lastFetchTime?: number
   lastFetchSuccess?: boolean
+  currentPage: number
+  hasMoreMessages: boolean
+  isFetchingMore: boolean
 }
 export interface ChatActions {
   // Conversations
@@ -18,6 +21,7 @@ export interface ChatActions {
   
   // Messages
   sendMessage: (content: string, messageType?: 'TEXT' | 'IMAGE' | 'VOICE' | 'LOCATION' | 'PAYMENT') => Promise<void>
+  fetchMessages: (conversationId: string) => Promise<void>
   loadMoreMessages: () => Promise<void>
   
   // Search

@@ -87,30 +87,84 @@ export const createConversationActions = (
   },
   // Select a conversation and load its messages
   selectConversation: async (conversationId: string) => {
-    set({ isLoading: true, error: null })
+    set({ isLoading: true, error: null, hasMoreMessages: true });
     try {
       // Find the conversation in the list
-      const conversation = get().conversations.find(c => c.convoId === conversationId)
+      const conversation = get().conversations.find(c => c.convoId === conversationId);
       if (conversation) {
-        set({ currentConversation: conversation })
+        set({ 
+          currentConversation: conversation,
+          messages: [], // Clear existing messages when switching conversations
+          currentPage: 1,
+          hasMoreMessages: true
+        });
         
         // Join the conversation room for real-time updates
-        const socket = useSocketStore.getState().socket
+        const socket = useSocketStore.getState().socket;
         if (socket) {
-          socket.emit('join_conversation', { conversationId })
+          socket.emit('join_conversation', { conversationId });
         }
         
-        // Load messages
-        const response = await chatAPI.getMessages(conversationId)
-        if (response.success) {
-          set({ messages: response.messages })
-        }
+        // Load initial messages (newest first)
+        await get().loadMoreMessages();
       }
     } catch (error: any) {
-      set({ error: error.message || 'Failed to load conversation' })
-      console.error('Error selecting conversation:', error)
+      set({ 
+        error: error.message || 'Failed to load conversation',
+        hasMoreMessages: false
+      });
+      console.error('Error selecting conversation:', error);
     } finally {
-      set({ isLoading: false })
+      set({ isLoading: false });
+    }
+  },
+  
+  // Load more messages with pagination
+  loadMoreMessages: async () => {
+    const { currentConversation, currentPage, isLoading, hasMoreMessages } = get();
+    
+    // Don't load more if already loading, no more messages, or no conversation selected
+    if (isLoading || !hasMoreMessages || !currentConversation) return;
+    
+    set({ isFetchingMore: true });
+    
+    try {
+      const response = await chatAPI.getMessages(currentConversation.convoId, currentPage, 20);
+      
+      if (response.success) {
+        set(state => {
+          if (!state.currentConversation) return state;
+          
+          const existingMessageIds = new Set(state.messages.map(m => m.messageId));
+          const newMessages = response.messages.filter(msg => !existingMessageIds.has(msg.messageId));
+          
+          // If no new messages, we've reached the end
+          if (newMessages.length === 0) {
+            return { 
+              hasMoreMessages: false,
+              isFetchingMore: false
+            };
+          }
+          
+          // Combine and sort messages by timestamp
+          const allMessages = [...state.messages, ...newMessages].sort(
+            (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          );
+          
+          return {
+            messages: allMessages,
+            currentPage: state.currentPage + 1,
+            hasMoreMessages: newMessages.length === 20, // Assume more if we got a full page
+            isFetchingMore: false
+          };
+        });
+      }
+    } catch (error) {
+      console.error('Error loading more messages:', error);
+      set({ 
+        error: 'Failed to load more messages',
+        isFetchingMore: false 
+      });
     }
   }
 })
@@ -137,14 +191,21 @@ export const createMessageActions = (
     
     // Create temp message outside try block to make it accessible in catch
     const tempMessage: Message = {
+      id: `temp-${Date.now()}`,
       messageId: `temp-${Date.now()}`,
       convoId: currentConversation.convoId,
       senderId: currentUser.userId,
       senderUsername: currentUser.username || 'You',
+      senderPhoto: currentUser.profilePhotoUrl,
       msgType: messageType as any,
       contentText: content,
       timestamp: new Date().toISOString(),
-      status: 'SENT' as const
+      status: 'SENT' as const,
+      // Add any other required fields with default values
+      contentUrl: '',
+      paymentTxnId: undefined,
+      longitude: undefined,
+      latitude: undefined
     }
     
     try {
@@ -186,28 +247,68 @@ export const createMessageActions = (
     }
   },
   // Load more messages for the current conversation (pagination)
-  loadMoreMessages: async () => {
-    const { currentConversation, messages } = get()
-    if (!currentConversation || messages.length === 0) return
+  // Fetch messages for a conversation
+  fetchMessages: async (conversationId: string) => {
+    if (!conversationId) return;
     
-    set({ isLoading: true })
+    set({ isLoading: true, error: null });
+    
+    try {
+      const response = await chatAPI.getMessages(
+        conversationId,
+        1, // First page
+        PAGINATION_CONFIG.DEFAULT_PAGE_SIZE
+      );
+      
+      if (response?.success) {
+        set({
+          messages: response.messages || [],
+          currentPage: 1,
+          hasMoreMessages: (response.messages?.length || 0) >= PAGINATION_CONFIG.DEFAULT_PAGE_SIZE,
+          isLoading: false,
+          error: null
+        });
+      } else {
+        throw new Error('Failed to fetch messages');
+      }
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+      set({
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Failed to fetch messages'
+      });
+    }
+  },
+  
+  loadMoreMessages: async () => {
+    const { currentConversation, messages, currentPage } = get()
+    if (!currentConversation || messages.length === 0) return;
+    
+    set({ isFetchingMore: true });
     
     try {
       const response = await chatAPI.getMessages(
         currentConversation.convoId, 
-        Math.floor(messages.length / PAGINATION_CONFIG.DEFAULT_PAGE_SIZE) + 1, // page number
-        PAGINATION_CONFIG.DEFAULT_PAGE_SIZE // limit
+        currentPage + 1, // Next page
+        PAGINATION_CONFIG.DEFAULT_PAGE_SIZE
       )
       
-      if (response.success && response.messages.length > 0) {
+      if (response?.success) {
         set(state => ({
-          messages: [...response.messages, ...state.messages],
-          isLoading: false
-        }))
+          messages: [...state.messages, ...(response.messages || [])],
+          currentPage: state.currentPage + 1,
+          hasMoreMessages: (response.messages?.length || 0) >= PAGINATION_CONFIG.DEFAULT_PAGE_SIZE,
+          isFetchingMore: false
+        }));
+      } else {
+        throw new Error('Failed to load more messages');
       }
     } catch (error) {
-      console.error('Error loading more messages:', error)
-      set({ isLoading: false })
+      console.error('Error loading more messages:', error);
+      set({
+        isFetchingMore: false,
+        error: error instanceof Error ? error.message : 'Failed to load more messages'
+      });
     }
   }
 })
