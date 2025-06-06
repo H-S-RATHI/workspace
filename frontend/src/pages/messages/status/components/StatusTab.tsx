@@ -1,11 +1,13 @@
-import { useEffect, useState } from 'react'
-import { useAuthStore } from '../../../../store/authStore'
-import StatusViewer from './StatusViewer'
-import StatusCreator from './StatusCreator'
-import StatusTabHeader from './StatusTabHeader'
-import MyStatusCard from './MyStatusCard'
-import RecentUpdatesList from './RecentUpdatesList'
-import EmptyStatusPlaceholder from './EmptyStatusPlaceholder'
+import { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useAuthStore } from '../../../../store/authStore';
+import StatusViewer from './StatusViewer';
+import StatusCreator from './StatusCreator';
+import MyStatusCard from './MyStatusCard';
+import RecentUpdatesList from './RecentUpdatesList';
+import EmptyStatusPlaceholder from './EmptyStatusPlaceholder';
+import { Button } from '../../../../components/ui/Button';
+import { Plus, RefreshCw, Search, X } from 'lucide-react';
 
 const StatusTab = () => {
   const [statuses, setStatuses] = useState<any[]>([])
@@ -164,13 +166,46 @@ const StatusTab = () => {
 
   const groupedStatuses = groupStatusesByUser()
 
+  // Refresh statuses
+  const handleRefresh = async () => {
+    setIsLoading(true);
+    await Promise.all([fetchStatuses(), fetchMyStatuses()]);
+    setIsLoading(false);
+  };
+
   return (
-    <div className="h-full overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="p-4 md:p-6">
-        <div className="max-w-4xl mx-auto">
-          <StatusTabHeader />
-          
-          <div className="space-y-6">
+    <div className="h-full overflow-y-auto bg-gradient-to-b from-gray-50 to-gray-100">
+      {/* Header */}
+      <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-gray-200">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+          <h1 className="text-xl font-bold text-gray-900">Status</h1>
+          <div className="flex items-center space-x-2">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="text-gray-500 hover:bg-gray-100"
+              onClick={handleRefresh}
+              disabled={isLoading}
+            >
+              <RefreshCw className={`h-5 w-5 ${isLoading ? 'animate-spin' : ''}`} />
+            </Button>
+            <Button variant="ghost" size="icon" className="text-gray-500 hover:bg-gray-100">
+              <Search className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="p-4 max-w-4xl mx-auto">
+        <AnimatePresence mode="wait">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-6"
+          >
             <MyStatusCard
               myStatuses={myStatuses}
               onView={() => openStatusViewer(myStatuses)}
@@ -186,10 +221,10 @@ const StatusTab = () => {
             )}
 
             {!isLoading && groupedStatuses.length === 0 && (
-              <EmptyStatusPlaceholder />
+              <EmptyStatusPlaceholder onAddStatus={() => setShowStatusCreator(true)} />
             )}
-          </div>
-        </div>
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       {/* Status Viewer */}

@@ -1,9 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  X, 
+  MessageCircle, 
+  Send, 
+  Heart, 
+  Share2, 
+  MoreVertical, 
+  Flag,
+  Bookmark,
+  ChevronDown,
+  ChevronUp,
+  Image as ImageIcon,
+  Video as VideoIcon,
+  FileText as TextIcon,
+  Pause,
+  Play
+} from 'lucide-react';
 import { motion } from 'framer-motion';
-import StatusViewerHeader from './StatusViewerHeader';
-import StatusViewerContent from './StatusViewerContent';
-import StatusViewerActions from './StatusViewerActions';
-import StatusViewerReplyInput from './StatusViewerReplyInput';
+import { formatDistanceToNow } from 'date-fns';
+
+// Add NodeJS type definition
+declare global {
+  namespace NodeJS {
+    interface Timeout {}
+  }
+}
 
 interface Status {
   statusId: string;
@@ -18,6 +39,10 @@ interface Status {
   textColor: string;
   privacy: string;
   viewCount: number;
+  likeCount: number;
+  replyCount: number;
+  isLiked: boolean;
+  isSaved: boolean;
   hasViewed: boolean;
   mentionedUsers: string[];
   createdAt: string;
@@ -31,6 +56,12 @@ interface StatusViewerProps {
   onNext: () => void;
   onPrevious: () => void;
   onViewStatus: (statusId: string) => void;
+  onLike: (statusId: string) => void;
+  onReply: (statusId: string, text: string) => void;
+  onShare: (statusId: string) => void;
+  onSave: (statusId: string) => void;
+  onReport: (statusId: string) => void;
+  currentUserId: string;
 }
 
 const StatusViewer: React.FC<StatusViewerProps> = ({
@@ -40,60 +71,134 @@ const StatusViewer: React.FC<StatusViewerProps> = ({
   onNext,
   onPrevious,
   onViewStatus,
+  onLike,
+  onReply,
+  onShare,
+  onSave,
+  onReport,
+  currentUserId,
 }) => {
-  const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [showReplyInput, setShowReplyInput] = useState(false);
   const [replyText, setReplyText] = useState('');
-  const [showReply, setShowReply] = useState(false);
-
-  const currentStatus = statuses[currentIndex];
-  const STORY_DURATION = 5000; // 5 seconds per story
-
-  // Handle marking status as viewed
-  useEffect(() => {
-    if (currentStatus && !currentStatus.hasViewed) {
-      onViewStatus(currentStatus.statusId);
-    }
-  }, [currentStatus, onViewStatus]);
+  const [showOptions, setShowOptions] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [currentStatusIndex, setCurrentStatusIndex] = useState(currentIndex);
+  
+  const status = statuses[currentStatusIndex];
+  const progressInterval = useRef<number | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const optionsRef = useRef<HTMLDivElement>(null);
+  
+  const STORY_DURATION = 5000; // 5 seconds per status
+  
+  if (!status) return null;
+  
+  const isOwnStatus = status.userId === currentUserId;
+  const isFirstStatus = currentStatusIndex === 0;
+  const isLastStatus = currentStatusIndex === statuses.length - 1;
 
   // Handle progress bar animation
   useEffect(() => {
-    if (!currentStatus || isPaused) return;
-
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        const newProgress = prev + (100 / (STORY_DURATION / 100));
-        if (newProgress >= 100) {
-          if (currentIndex < statuses.length - 1) {
-            onNext();
-          } else {
-            onClose();
-          }
-          return 0;
+    if (isPaused) return;
+    
+    const duration = STORY_DURATION; // 5 seconds per status
+    const startTime = Date.now();
+    
+    if (progressInterval.current) {
+      clearInterval(progressInterval.current);
+    }
+    progressInterval.current = window.setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const newProgress = Math.min((elapsed / duration) * 100, 100);
+      setProgress(newProgress);
+      
+      if (newProgress >= 100) {
+        clearInterval(progressInterval.current);
+        if (isLastStatus) {
+          onClose();
+        } else {
+          handleNext();
         }
-        return newProgress;
-      });
-    }, 100);
+      }
+    }, 50);
+    
+    return () => {
+      if (progressInterval.current) {
+        window.clearInterval(progressInterval.current);
+        progressInterval.current = null;
+      }
+    };
+  }, [isPaused, currentStatusIndex, isLastStatus, onClose, STORY_DURATION]);
 
-    return () => clearInterval(interval);
-  }, [currentIndex, currentStatus, isPaused, onNext, onClose, statuses.length]);
-
+  // Reset progress when status changes
   useEffect(() => {
     setProgress(0);
-  }, [currentIndex]);
-
-  const handleReply = () => {
-    if (replyText.trim()) {
-      // TODO: Implement reply functionality
-      console.log('Reply:', replyText);
-      setReplyText('');
-      setShowReply(false);
+    if (status) {
+      onViewStatus(status.statusId);
     }
+  }, [currentStatusIndex, status, onViewStatus]);
+
+  // Handle keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      switch (e.key) {
+        case 'ArrowRight':
+          handleNext();
+          break;
+        case 'ArrowLeft':
+          handlePrevious();
+          break;
+        case 'Escape':
+          onClose();
+          break;
+        case ' ':
+          togglePause();
+          break;
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentStatusIndex, isPaused]);
+
+  // Close options when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (optionsRef.current && !optionsRef.current.contains(e.target as Node)) {
+        setShowOptions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleNext = () => {
+    if (isLastStatus) {
+      onNext();
+    } else {
+      setCurrentStatusIndex(prev => prev + 1);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (isFirstStatus) {
+      onPrevious();
+    } else {
+      setCurrentStatusIndex(prev => prev - 1);
+    }
+  };
+
+  const togglePause = () => {
+    setIsPaused(prev => !prev);
   };
 
   const getTimeRemaining = () => {
     const now = new Date();
-    const expires = new Date(currentStatus.expiresAt);
+    const expires = new Date(status.expiresAt);
     const diff = expires.getTime() - now.getTime();
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
@@ -103,60 +208,174 @@ const StatusViewer: React.FC<StatusViewerProps> = ({
     }
     return `${minutes}m`;
   };
-
-  if (!currentStatus) return null;
+  
+  const handleLike = () => {
+    onLike(status.statusId);
+  };
+  
+  const handleShare = () => {
+    onShare(status.statusId);
+  };
+  
+  const handleSave = () => {
+    onSave(status.statusId);
+  };
+  
+  const handleReport = () => {
+    onReport(status.statusId);
+    setShowOptions(false);
+  };
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black z-50 flex items-center justify-center"
+      className="fixed inset-0 bg-black z-50 flex flex-col"
       onMouseDown={() => setIsPaused(true)}
       onMouseUp={() => setIsPaused(false)}
       onTouchStart={() => setIsPaused(true)}
       onTouchEnd={() => setIsPaused(false)}
+      ref={containerRef}
     >
-      <StatusViewerHeader
-        statuses={statuses}
-        currentIndex={currentIndex}
-        progress={progress}
-        onClose={onClose}
-        currentStatus={currentStatus}
-        getTimeRemaining={getTimeRemaining}
-      />
+      {/* Progress bar */}
+      <div className="h-1 bg-gray-700 w-full">
+        <motion.div
+          className="h-full bg-white"
+          style={{ width: `${progress}%` }}
+          initial={{ width: 0 }}
+          animate={{ width: `${progress}%` }}
+          transition={{ duration: 0.1 }}
+        />
+      </div>
 
-      {/* Navigation areas */}
-      <div className="absolute inset-0 flex">
-        <div 
-          className="flex-1 cursor-pointer"
-          onClick={onPrevious}
-        />
-        <div 
-          className="flex-1 cursor-pointer"
-          onClick={onNext}
-        />
+      {/* Header */}
+      <div className="flex items-center justify-between p-4">
+        <div className="flex items-center space-x-3">
+          <img
+            src={status.profilePhotoUrl}
+            alt={status.username}
+            className="w-8 h-8 rounded-full"
+          />
+          <div>
+            <p className="text-white font-medium">{status.fullName}</p>
+            <p className="text-gray-400 text-sm">{getTimeRemaining()} left</p>
+          </div>
+        </div>
+        <div className="flex items-center space-x-4">
+          <button onClick={togglePause} className="text-white">
+            {isPaused ? <Play size={24} /> : <Pause size={24} />}
+          </button>
+          <button onClick={onClose} className="text-white">
+            <X size={24} />
+          </button>
+        </div>
       </div>
 
       {/* Content */}
-      <StatusViewerContent currentStatus={currentStatus} />
+      <div className="flex-1 flex items-center justify-center relative">
+        {status.mediaType === 'IMAGE' && status.mediaUrl && (
+          <img
+            src={status.mediaUrl}
+            alt="Status content"
+            className="max-h-[80vh] max-w-full object-contain"
+          />
+        )}
+        {status.mediaType === 'VIDEO' && status.mediaUrl && (
+          <video
+            src={status.mediaUrl}
+            className="max-h-[80vh] max-w-full"
+            autoPlay
+            loop
+            muted
+          />
+        )}
+        {status.mediaType === 'TEXT' && (
+          <div 
+            className="p-8 rounded-lg text-center max-w-md mx-auto"
+            style={{
+              backgroundColor: status.backgroundColor,
+              color: status.textColor
+            }}
+          >
+            <p className="text-2xl">{status.content}</p>
+          </div>
+        )}
+      </div>
 
       {/* Bottom actions */}
-      <div className="absolute bottom-4 left-4 right-4 z-10">
-        <StatusViewerActions
-          onLike={() => {}}
-          onReply={handleReply}
-          showReply={showReply}
-          setShowReply={setShowReply}
-          createdAt={currentStatus.createdAt}
-        />
-        <StatusViewerReplyInput
-          replyText={replyText}
-          setReplyText={setReplyText}
-          handleReply={handleReply}
-          showReply={showReply}
-        />
+      <div className="p-4 flex justify-between items-center">
+        <div className="flex space-x-4">
+          <button
+            onClick={handleLike}
+            className={`p-2 rounded-full ${status.isLiked ? 'text-red-500' : 'text-white'}`}
+          >
+            <Heart fill={status.isLiked ? 'currentColor' : 'none'} size={24} />
+          </button>
+          <button
+            onClick={() => setShowReplyInput(!showReplyInput)}
+            className="text-white p-2"
+          >
+            <MessageCircle size={24} />
+          </button>
+          <button onClick={handleShare} className="text-white p-2">
+            <Share2 size={24} />
+          </button>
+        </div>
+
+        <div className="relative" ref={optionsRef}>
+          <button
+            onClick={() => setShowOptions(!showOptions)}
+            className="text-white p-2"
+          >
+            <MoreVertical size={24} />
+          </button>
+          
+          {showOptions && (
+            <div className="absolute bottom-full right-0 mb-2 w-48 bg-gray-800 rounded-md shadow-lg z-10">
+              <button
+                onClick={handleSave}
+                className="w-full text-left px-4 py-2 text-white hover:bg-gray-700 flex items-center space-x-2"
+              >
+                <Bookmark size={16} />
+                <span>{status.isSaved ? 'Unsave' : 'Save'}</span>
+              </button>
+              {!isOwnStatus && (
+                <button
+                  onClick={handleReport}
+                  className="w-full text-left px-4 py-2 text-red-500 hover:bg-gray-700 flex items-center space-x-2"
+                >
+                  <Flag size={16} />
+                  <span>Report</span>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Reply input */}
+      {showReplyInput && (
+        <div className="p-4 border-t border-gray-800">
+          <form onSubmit={handleReplySubmit} className="flex space-x-2">
+            <input
+              type="text"
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              placeholder="Reply..."
+              className="flex-1 bg-gray-800 text-white rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              autoFocus
+            />
+            <button
+              type="submit"
+              disabled={!replyText.trim()}
+              className="bg-blue-500 text-white rounded-full p-2 disabled:opacity-50"
+            >
+              <Send size={20} />
+            </button>
+          </form>
+        </div>
+      )}
     </motion.div>
   );
 };
