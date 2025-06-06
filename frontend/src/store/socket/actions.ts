@@ -14,17 +14,51 @@ export const createConnectionActions = (
     const accessToken = useAuthStore.getState().accessToken
     const state = get()
     
-    if (!accessToken || state.socket?.connected) {
-      console.log('Skipping WebSocket connection -', !accessToken ? 'no access token' : 'already connected')
-      return
+    console.log('[SocketStore][connect] Attempting to connect...', {
+      hasAccessToken: !!accessToken,
+      isAlreadyConnected: state.socket?.connected,
+      socketExists: !!state.socket
+    });
+    
+    if (!accessToken) {
+      console.error('[SocketStore][connect] Cannot connect: No access token available');
+      return;
+    }
+    
+    if (state.socket?.connected) {
+      console.log('[SocketStore][connect] Socket already connected, skipping...');
+      return;
     }
     try {
       // Ensure we have a clean URL without trailing slashes
       // Remove /api/v1 from the URL if present, as Socket.IO needs to connect to the root
       let baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:12000').replace(/\/+$/, '')
+      const originalBaseUrl = baseUrl;
       baseUrl = baseUrl.replace(/\/api\/v1$/, '') // Remove /api/v1 if present
       
+      console.log('[SocketStore][connect] Preparing connection with:', {
+        originalBaseUrl,
+        cleanBaseUrl: baseUrl,
+        envApiUrl: import.meta.env.VITE_API_URL,
+        usingDefault: !import.meta.env.VITE_API_URL
+      });
+      
       console.log('Initializing socket connection to:', baseUrl)
+      
+      console.log('[SocketStore][connect] Creating socket instance with options:', {
+        baseUrl,
+        transports: [...SOCKET_CONFIG.TRANSPORTS],
+        path: SOCKET_CONFIG.PATH,
+        autoConnect: false,
+        reconnection: true,
+        reconnectionAttempts: SOCKET_CONFIG.RECONNECTION_ATTEMPTS,
+        reconnectionDelay: SOCKET_CONFIG.RECONNECTION_DELAY,
+        reconnectionDelayMax: SOCKET_CONFIG.RECONNECTION_DELAY_MAX,
+        timeout: SOCKET_CONFIG.TIMEOUT,
+        withCredentials: true,
+        forceNew: true,
+        multiplex: false
+      });
       
       // Create socket instance with explicit configuration
       const newSocket = io(baseUrl, {
@@ -63,12 +97,36 @@ export const createConnectionActions = (
       // Setup all event handlers
       setupSocketEventHandlers(newSocket, set, get)
       
+      // Add connection state change listeners
+      newSocket.on('connect', () => {
+        console.log('[SocketStore][connect] Socket connected successfully', {
+          socketId: newSocket.id,
+          connected: newSocket.connected
+        });
+      });
+      
+      newSocket.on('connect_error', (error) => {
+        console.error('[SocketStore][connect] Socket connection error:', {
+          error: error.message,
+          name: error.name,
+          stack: error.stack
+        });
+      });
+      
+      newSocket.on('disconnect', (reason) => {
+        console.log('[SocketStore][connect] Socket disconnected:', reason);
+      });
+      
       // Manually connect after setting up all event listeners
-      console.log('Attempting to connect socket...')
+      console.log('[SocketStore][connect] Attempting to connect socket...')
       newSocket.connect()
       
       // Store the socket in the state
       set({ socket: newSocket })
+      console.log('[SocketStore][connect] Socket instance created and stored in state', {
+        socketId: newSocket.id,
+        connected: newSocket.connected
+      })
     } catch (error) {
       console.error('Failed to initialize socket:', error)
       toast.error('Failed to connect to the server')
@@ -145,35 +203,73 @@ export const createCallActions = (
   get: () => SocketStore
 ) => ({
   sendCallOffer: (targetUserId: string, offer: any, callType: 'video' | 'audio') => {
-    const { socket } = get()
+    const { socket } = get();
+    
+    console.log('[SocketStore][sendCallOffer] Sending call offer:', {
+      targetUserId,
+      callType,
+      socketConnected: socket?.connected,
+      socketId: socket?.id,
+      offerType: offer?.type,
+      offerSdp: offer?.sdp ? `${offer.sdp.substring(0, 50)}...` : 'No SDP'
+    });
     
     if (socket?.connected) {
       socket.emit(SOCKET_EVENTS.CALL_OFFER, {
         targetUserId,
         offer,
         callType,
-      })
+      });
+      console.log('[SocketStore][sendCallOffer] Call offer sent successfully');
+    } else {
+      console.error('[SocketStore][sendCallOffer] Cannot send offer: Socket not connected');
     }
   },
   answerCall: (callId: string, answer: any) => {
-    const { socket } = get()
+    const { socket } = get();
+    
+    console.log('[SocketStore][answerCall] Sending call answer:', {
+      callId,
+      socketConnected: socket?.connected,
+      answerType: answer?.type,
+      answerSdp: answer?.sdp ? `${answer.sdp.substring(0, 50)}...` : 'No SDP'
+    });
     
     if (socket?.connected) {
-      socket.emit(SOCKET_EVENTS.CALL_ANSWER, { callId, answer })
+      socket.emit(SOCKET_EVENTS.CALL_ANSWER, { callId, answer });
+      console.log('[SocketStore][answerCall] Call answer sent successfully');
+    } else {
+      console.error('[SocketStore][answerCall] Cannot send answer: Socket not connected');
     }
   },
   rejectCall: (callId: string) => {
-    const { socket } = get()
+    const { socket } = get();
+    
+    console.log('[SocketStore][rejectCall] Rejecting call:', {
+      callId,
+      socketConnected: socket?.connected
+    });
     
     if (socket?.connected) {
-      socket.emit(SOCKET_EVENTS.CALL_REJECT, { callId })
+      socket.emit(SOCKET_EVENTS.CALL_REJECT, { callId });
+      console.log('[SocketStore][rejectCall] Call rejection sent');
+    } else {
+      console.error('[SocketStore][rejectCall] Cannot reject call: Socket not connected');
     }
   },
   endCall: (callId: string) => {
-    const { socket } = get()
+    const { socket } = get();
+    
+    console.log('[SocketStore][endCall] Ending call:', {
+      callId,
+      socketConnected: socket?.connected
+    });
     
     if (socket?.connected) {
-      socket.emit(SOCKET_EVENTS.CALL_END, { callId })
+      socket.emit(SOCKET_EVENTS.CALL_END, { callId });
+      console.log('[SocketStore][endCall] Call end signal sent');
+    } else {
+      console.error('[SocketStore][endCall] Cannot end call: Socket not connected');
     }
   }
 })

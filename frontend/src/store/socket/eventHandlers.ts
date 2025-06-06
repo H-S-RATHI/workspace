@@ -136,62 +136,99 @@ export const setupTypingHandlers = (
 // Call Event Handlers
 export const setupCallHandlers = (socket: Socket) => {
   // Handle incoming calls
-  socket.on(SOCKET_EVENTS.INCOMING_CALL, (data: CallEvent) => {
-    const { callId, callerId, callerUsername, callType, offer } = data;
-    console.log('Incoming call:', { callId, callerId, callerUsername, callType });
-    
-    // This will be handled by the call store or components
-    const callStore = require('../../../store/callStore').useCallStore.getState();
-    callStore.handleIncomingCall({
-      callId,
-      callerId,
-      callerUsername,
-      callType,
-      offer
-    });
+  socket.on(SOCKET_EVENTS.INCOMING_CALL, async (data: CallEvent) => {
+    try {
+      const { callId, callerId, callerUsername, callType, offer } = data;
+      console.log('[Socket] Incoming call:', { callId, callerId, callerUsername, callType });
+      
+      // Import the call store dynamically to avoid circular dependencies
+      const { useCallStore } = await import('../../store/call/store');
+      const callStore = useCallStore.getState();
+      
+      await callStore.handleIncomingCall({
+        callId,
+        callerId,
+        callerUsername,
+        callType,
+        offer
+      });
+      
+      console.log('[Socket] Successfully handled incoming call');
+    } catch (error) {
+      console.error('[Socket] Error handling incoming call:', error);
+    }
   });
   
   // Handle call answered
   socket.on(SOCKET_EVENTS.CALL_ANSWERED, async (data: CallEvent & { answer: RTCSessionDescriptionInit }) => {
-    console.log('Call answered:', data.callId);
-    const callStore = require('../../../store/callStore').useCallStore.getState();
-    callStore.answerCall(data.callId, data.answer);
+    try {
+      console.log('[Socket] Call answered:', data.callId);
+      const { useCallStore } = await import('../../store/call/store');
+      const callStore = useCallStore.getState();
+      
+      await callStore.answerCall(data.callId, data.answer);
+      console.log('[Socket] Successfully handled call answer');
+    } catch (error) {
+      console.error('[Socket] Error handling call answer:', error);
+    }
   });
   
   // Handle call rejected
-  socket.on(SOCKET_EVENTS.CALL_REJECTED, (data: CallEvent) => {
-    console.log('Call rejected:', data.callId);
-    toast.error('Call was rejected');
-    const callStore = require('../../../store/callStore').useCallStore.getState();
-    callStore.endCall(data.callId);
+  socket.on(SOCKET_EVENTS.CALL_REJECTED, async (data: CallEvent) => {
+    try {
+      console.log('[Socket] Call rejected:', data.callId);
+      toast.error('Call was rejected');
+      
+      const { useCallStore } = await import('../../store/call/store');
+      const callStore = useCallStore.getState();
+      
+      callStore.endCall(data.callId);
+      console.log('[Socket] Successfully handled call rejection');
+    } catch (error) {
+      console.error('[Socket] Error handling call rejection:', error);
+    }
   });
   
   // Handle call ended
-  socket.on(SOCKET_EVENTS.CALL_ENDED, (data: CallEvent) => {
-    console.log('Call ended:', data.callId);
-    const callStore = require('../../../store/callStore').useCallStore.getState();
-    callStore.endCall(data.callId);
+  socket.on(SOCKET_EVENTS.CALL_ENDED, async (data: CallEvent) => {
+    try {
+      console.log('[Socket] Call ended:', data.callId);
+      
+      const { useCallStore } = await import('../../store/call/store');
+      const callStore = useCallStore.getState();
+      
+      callStore.endCall(data.callId);
+      console.log('[Socket] Successfully handled call end');
+    } catch (error) {
+      console.error('[Socket] Error handling call end:', error);
+    }
   });
   
   // Handle ICE candidates
   socket.on(SOCKET_EVENTS.ICE_CANDIDATE, async (data: IceCandidateEvent) => {
-    console.log('ICE candidate received from:', data.fromUserId);
-    const callStore = require('../../../store/callStore').useCallStore.getState();
-    const { activeCall } = callStore;
-    
-    if (activeCall?.peerConnection && data.candidate) {
-      try {
+    try {
+      console.log('[Socket] ICE candidate received from:', data.fromUserId);
+      
+      const { useCallStore } = await import('../../store/call/store');
+      const callStore = useCallStore.getState();
+      const { activeCall } = callStore;
+      
+      if (activeCall?.peerConnection && data.candidate) {
+        console.log('[Socket] Adding ICE candidate to peer connection');
         await activeCall.peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
-      } catch (error) {
-        console.error('Error adding ICE candidate:', error);
+        console.log('[Socket] Successfully added ICE candidate');
+      } else {
+        console.warn('[Socket] No active call or peer connection to add ICE candidate to');
       }
+    } catch (error) {
+      console.error('[Socket] Error adding ICE candidate:', error);
     }
   });
   
-  // Handle call state sync
+  // Handle call state sync (if needed)
   socket.on('call_state_sync', (data: { callId: string, state: any }) => {
-    console.log('Call state sync:', data.callId, data.state);
-    // Handle call state synchronization if needed
+    console.log('[Socket] Call state sync:', data.callId, data.state);
+    // Implement any necessary call state synchronization logic here
   });
 }
 // Error Event Handlers

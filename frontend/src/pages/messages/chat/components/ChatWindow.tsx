@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useChatStore } from '@/store/chatStore';
 import { useAuthStore } from '@/store/authStore';
+import { useCallStore } from '@/store/call';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, isToday, isYesterday } from 'date-fns';
 import type { Message } from '../../../../types/chat';
@@ -163,6 +164,12 @@ const ChatWindow = () => {
   // Memoize store selectors to prevent unnecessary re-renders
   const { currentConversation } = useChatStore();
   const { user } = useAuthStore();
+  const { initiateCall } = useCallStore();
+  
+  // Debug log when call store is accessed
+  useEffect(() => {
+    console.log('Call store initialized with initiateCall:', !!initiateCall);
+  }, [initiateCall]);
   
   // Get the other user's ID from conversation members for direct messages
   const getOtherUserId = useCallback(() => {

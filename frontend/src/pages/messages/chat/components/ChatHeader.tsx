@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Phone, Video, Search, MoreVertical } from 'lucide-react';
 import { cn } from './utils';
 import { CallDialog } from './CallDialog';
 import { useCallStore } from '@/store/call';
 import { useAuthStore } from '@/store/auth';
+import { useSocketStore } from '@/store/socket';
 
 interface ChatHeaderProps {
   name: string;
@@ -21,27 +22,50 @@ export const ChatHeader = ({
   onSearchClick,
 }: ChatHeaderProps) => {
   const [isCallDialogOpen, setIsCallDialogOpen] = useState(false);
-  const { initiateCall } = useCallStore();
-  // User will be used for future enhancements like caller info
+  const { initiateCall, activeCall } = useCallStore();
+  const { socket } = useSocketStore();
   const { user: _user } = useAuthStore();
+  
+  // Debug logs
+  useEffect(() => {
+    console.log('ChatHeader mounted with socket:', !!socket);
+    console.log('Active call:', activeCall);
+    
+    return () => {
+      console.log('ChatHeader unmounting');
+    };
+  }, [socket, activeCall]);
+  
+  // Log when initiateCall changes
+  useEffect(() => {
+    console.log('initiateCall function updated:', !!initiateCall);
+  }, [initiateCall]);
 
   const handleCallStart = async (type: 'audio' | 'video') => {
-    console.log('handleCallStart called with type:', type, 'for user:', userId);
+    console.log('[ChatHeader] handleCallStart called with type:', type, 'for user:', userId);
+    
     if (!userId) {
-      console.error('Cannot start call: No user ID provided');
+      console.error('[ChatHeader] Cannot start call: No user ID provided');
+      return;
+    }
+    
+    if (!socket) {
+      console.error('[ChatHeader] Cannot start call: WebSocket connection not available');
       return;
     }
     
     try {
-      console.log('Initiating call to user:', userId, 'type:', type);
+      console.log('[ChatHeader] Initiating call to user:', userId, 'type:', type);
+      
       const result = await initiateCall({
         targetUserId: userId,
         callType: type,
       });
-      console.log('Call initiated successfully:', result);
+      
+      console.log('[ChatHeader] Call initiated successfully:', result);
       setIsCallDialogOpen(false);
     } catch (error) {
-      console.error('Failed to initiate call:', error);
+      console.error('[ChatHeader] Failed to initiate call:', error);
     }
   };
   return (

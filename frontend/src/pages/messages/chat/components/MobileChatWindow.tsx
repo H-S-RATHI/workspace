@@ -6,6 +6,8 @@ import { useAuthStore } from '../../../../store/auth';
 import { MessageBubble } from './MessageBubble';
 import { format, parseISO, isToday, isYesterday } from 'date-fns';
 import type { Message } from '../../../../types/chat';
+import { useSocketStore } from '@/store/socket/store';
+import { useCallStore } from '@/store/call/store';
 
 // Simple DateHeader component
 type DateHeaderProps = {
@@ -58,8 +60,17 @@ const MobileChatWindow = ({ onBack }: MobileChatWindowProps) => {
   } = useChatStore();
   
   const { user: currentUser } = useAuthStore();
+  const { socket } = useSocketStore();
+  const { 
+    activeCall, 
+    initiateCall, 
+    endCall, 
+    isCallInProgress,
+    isCallActive
+  } = useCallStore();
   const navigate = useNavigate();
   const currentUserId = currentUser?.userId || '';
+  const [isCallDialogOpen, setIsCallDialogOpen] = useState(false);
   
   // Load messages when currentConversation changes
   useEffect(() => {
@@ -86,6 +97,44 @@ const MobileChatWindow = ({ onBack }: MobileChatWindowProps) => {
     
     return otherMember?.userId || null;
   }, [currentConversation, currentUserId]);
+
+  // Handle starting a call
+  const handleCallStart = useCallback(async (type: 'audio' | 'video') => {
+    if (!otherUserId) {
+      console.error('Cannot start call: No target user ID');
+      return;
+    }
+
+    console.log('[MobileChatWindow] Starting', type, 'call to user:', otherUserId);
+    
+    try {
+      await initiateCall({
+        targetUserId: otherUserId,
+        callType: type,
+      });
+      setIsCallDialogOpen(false);
+    } catch (error) {
+      console.error('Failed to start call:', error);
+      // Handle error (show toast, etc.)
+    }
+  }, [otherUserId, initiateCall]);
+
+  // Handle ending a call
+  // Handle ending a call
+  const handleEndCall = useCallback(() => {
+    if (activeCall?.callId) {
+      endCall(activeCall.callId);
+    }
+  }, [activeCall, endCall]);
+  
+  // Open call dialog
+  const handleCallButtonClick = useCallback(() => {
+    if (!otherUserId) {
+      console.error('Cannot start call: No target user ID');
+      return;
+    }
+    setIsCallDialogOpen(true);
+  }, [otherUserId]);
   const [message, setMessage] = useState('');
   
   // Refs for scroll handling
@@ -258,17 +307,53 @@ const MobileChatWindow = ({ onBack }: MobileChatWindowProps) => {
           <p className="text-xs text-white/80">Online</p>
         </div>
         <div className="flex items-center space-x-2">
-          <button className="p-2 hover:bg-white/20 rounded-full transition-colors">
-            <Phone className="w-5 h-5" />
-          </button>
-          <button className="p-2 hover:bg-white/20 rounded-full transition-colors">
-            <Video className="w-5 h-5" />
-          </button>
-          <button className="p-2 hover:bg-white/20 rounded-full transition-colors">
-            <MoreVertical className="w-5 h-5" />
-          </button>
+          {isCallInProgress || isCallActive ? (
+            <button 
+              onClick={handleEndCall}
+              className="p-2 bg-red-500 hover:bg-red-600 rounded-full transition-colors"
+              aria-label="End call"
+            >
+              <PhoneOff className="w-5 h-5 text-white" />
+            </button>
+          ) : (
+            <>
+              <button 
+                onClick={() => handleCallStart('audio')}
+                className="p-2 hover:bg-white/20 rounded-full transition-colors"
+                aria-label="Voice call"
+                disabled={!socket?.connected}
+              >
+                <Phone className="w-5 h-5" />
+              </button>
+              <button 
+                onClick={() => handleCallStart('video')}
+                className="p-2 hover:bg-white/20 rounded-full transition-colors"
+                aria-label="Video call"
+                disabled={!socket?.connected}
+              >
+                <Video className="w-5 h-5" />
+              </button>
+              <button 
+                className="p-2 hover:bg-white/20 rounded-full transition-colors"
+                aria-label="More options"
+              >
+                <MoreVertical className="w-5 h-5" />
+              </button>
+            </>
+          )}
         </div>
       </div>
+      
+      {/* Call Dialog */}
+      {isCallDialogOpen && (
+        <CallDialog 
+          isOpen={isCallDialogOpen}
+          onClose={() => setIsCallDialogOpen(false)}
+          onCallStart={handleCallStart}
+          recipientName={currentConversation?.displayName || 'User'}
+        />
+      )}
+      
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-blue-50/30 to-white">
         {Object.keys(groupedMessages).length === 0 ? (

@@ -1,9 +1,7 @@
 import { create } from 'zustand';
-import type { CallStore, CallType } from './types';
+import type { CallStore, CallType, CallStatus, Call } from './types';
 import { INITIAL_CALL_STATE } from './constants';
 import { createCallActions } from './actions';
-
-// Importing CALL_STATUS from constants
 import { useSocketStore } from '../socketStore';
 import { SOCKET_EVENTS } from '../socket/constants';
 import { toast } from 'react-hot-toast';
@@ -28,33 +26,41 @@ const createPeerConnection = (): RTCPeerConnection => {
 };
 
 // Type for call timeouts
+type CallTimeouts = Record<string, NodeJS.Timeout>;
 
 // Extend the CallStore interface with additional state and methods
-interface CallStoreState extends CallStore {
-  callTimeouts: Record<string, NodeJS.Timeout>;
+interface CallStoreState extends Omit<CallStore, 'activeCall' | 'isCallModalOpen' | 'callStatus'> {
+  callTimeouts: CallTimeouts;
+  activeCall: Call | null;
+  isCallModalOpen: boolean;
+  callStatus: CallStatus;
   setCallModalOpen: (isOpen: boolean) => void;
   handleIncomingCall: (data: {
     callId: string;
     callerId: string;
     callerUsername: string;
     callType: CallType;
-    offer: RTCSessionDescriptionInit; // Only accept the init type from the wire
+    offer: RTCSessionDescriptionInit;
   }) => Promise<void>;
+  endCall: (callId: string) => void;
 }
 
-export const useCallStore = create<CallStoreState>((set, get) => ({
+// Create the store with proper type
+type StoreSet = (
+  partial: CallStoreState | Partial<CallStoreState> | ((state: CallStoreState) => CallStoreState | Partial<CallStoreState>),
+  replace?: boolean
+) => void;
+
+type StoreGet = () => CallStoreState;
+
+// Create the store
+export const useCallStore = create<CallStoreState>((set: StoreSet, get: StoreGet) => ({
   ...INITIAL_CALL_STATE,
   callTimeouts: {},
   
   setCallModalOpen: (isOpen) => set({ isCallModalOpen: isOpen }),
   
-  handleIncomingCall: async (data: {
-    callId: string;
-    callerId: string;
-    callerUsername: string;
-    callType: CallType;
-    offer: RTCSessionDescriptionInit;
-  }): Promise<void> => {
+  handleIncomingCall: async (data) => {
     const { callId, callerId, callerUsername, callType, offer } = data;
     const { endCall } = get();
     const peerConnection = createPeerConnection();
@@ -62,10 +68,42 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
 
     try {
       // Set up the peer connection
-      peerConnection.ontrack = (event) => {
-        event.streams[0].getTracks().forEach((track) => {
-          remoteStream.addTrack(track);
-        });
+      peerConnection.ontrack = (event: RTCTrackEvent) => {
+        if (event.streams && event.streams[0]) {
+          event.streams[0].getTracks().forEach((track) => {
+            if (!remoteStream.getTracks().some(t => t.id === track.id)) {
+              remoteStream.addTrack(track);
+            }
+          });
+        }
+      };
+
+      // Set up connection state change handler
+      peerConnection.onconnectionstatechange = () => {
+        console.log('Peer connection state changed:', peerConnection.connectionState);
+        const { activeCall } = get();
+        if (peerConnection.connectionState === 'disconnected' || 
+            peerConnection.connectionState === 'failed' || 
+            peerConnection.connectionState === 'closed') {
+          if (activeCall) {
+            endCall(activeCall.callId);
+          }
+        }
+      };
+
+      // Handle ICE candidates
+      peerConnection.onicecandidate = (event: RTCPeerConnectionIceEvent) => {
+        if (event.candidate) {
+          const { socket } = useSocketStore.getState();
+          const { activeCall } = get();
+          if (socket && activeCall) {
+            socket.emit(SOCKET_EVENTS.ICE_CANDIDATE, {
+              to: activeCall.otherParty.userId,
+              callId: activeCall.callId,
+              candidate: event.candidate,
+            });
+          }
+        }
       };
 
       // Create a native RTCSessionDescription from the offer
@@ -83,7 +121,7 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
         activeCall: {
           callId,
           callType,
-          status: 'RINGING' as const, // Using const assertion for type safety
+          status: 'RINGING',
           startedAt: new Date().toISOString(),
           isIncoming: true,
           peerConnection,
@@ -91,8 +129,8 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
           otherParty: {
             userId: callerId,
             username: callerUsername,
-            fullName: callerUsername, // TODO: Get full name from user data
-            profilePhotoUrl: '', // TODO: Get profile photo URL
+            fullName: callerUsername,
+            profilePhotoUrl: '',
           },
         },
         isCallModalOpen: true,
@@ -101,7 +139,7 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
       // Send the answer back to the caller
       useSocketStore.getState().emit(SOCKET_EVENTS.CALL_ANSWERED, {
         callId,
-        answer
+        answer: peerConnection.localDescription
       });
       
       // Set a timeout to end the call if not answered
@@ -122,35 +160,37 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
       }, 30000);
       
       // Store the timeout ID for cleanup
-      set({
+      set((state: CallStoreState) => ({
+        ...state,
         callTimeouts: {
-          ...get().callTimeouts,
+          ...state.callTimeouts,
           [callId]: timeoutId,
         },
-      });
+      }));
       
-      return;
     } catch (error) {
       console.error('Error handling incoming call:', error);
       endCall(callId);
       toast.error('Failed to handle incoming call');
-      return;
     }
   },
   
-
-  
   ...createCallActions(set, get),
   
-  endCall: (callId: string): void => {
+  endCall: (callId: string) => {
     const { callTimeouts, activeCall } = get();
     
     // Clear the timeout if it exists
     if (callTimeouts[callId]) {
       clearTimeout(callTimeouts[callId]);
-      const newTimeouts = { ...callTimeouts };
-      delete newTimeouts[callId];
-      set({ callTimeouts: newTimeouts });
+      set((state: CallStoreState) => {
+        const newTimeouts = { ...state.callTimeouts };
+        delete newTimeouts[callId];
+        return {
+          ...state,
+          callTimeouts: newTimeouts
+        };
+      });
     }
     
     // Clean up peer connection if exists
