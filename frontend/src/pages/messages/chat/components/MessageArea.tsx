@@ -1,0 +1,95 @@
+import { AnimatePresence } from 'framer-motion';
+import { format, isToday, isYesterday } from 'date-fns';
+import { Message } from '@/types/chat';
+import { MessageBubble } from './MessageBubble';
+import { MessageCircle } from 'lucide-react';
+
+// Format message date header
+const formatMessageDate = (date: Date): string => {
+  if (isToday(date)) return 'Today';
+  if (isYesterday(date)) return 'Yesterday';
+  return format(date, 'MMMM d, yyyy');
+};
+
+// Typing indicator component
+const TypingIndicator = () => (
+  <div className="flex items-center space-x-1 px-4 py-2">
+    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+  </div>
+);
+
+interface MessageAreaProps {
+  messages: Message[];
+  isTyping: boolean;
+  currentUserId: string;
+  messagesEndRef: React.RefObject<HTMLDivElement>;
+}
+
+export const MessageArea = ({
+  messages = [],
+  isTyping = false,
+  currentUserId = '',
+  messagesEndRef
+}: MessageAreaProps) => {
+  // Group messages by date
+  const groupedMessages = messages.reduce<Record<string, Message[]>>((acc, message) => {
+    if (!message || !message.timestamp) return acc;
+    
+    try {
+      const date = new Date(message.timestamp);
+      const dateKey = format(date, 'yyyy-MM-dd');
+      
+      if (!acc[dateKey]) {
+        acc[dateKey] = [];
+      }
+      
+      acc[dateKey].push(message);
+      return acc;
+    } catch (error) {
+      console.error('Error processing message date:', error);
+      return acc;
+    }
+  }, {});
+
+  return (
+    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <AnimatePresence>
+        {messages.length === 0 ? (
+          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+            <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-4">
+              <MessageCircle className="w-8 h-8 text-blue-500" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No messages yet</h3>
+            <p className="text-gray-500 dark:text-gray-400 max-w-md">
+              Start the conversation by sending your first message
+            </p>
+          </div>
+        ) : (
+          Object.entries(groupedMessages).map(([date, dateMessages]) => (
+            <div key={`date-${date}`} className="mb-4">
+              <div className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm py-2 text-center">
+                <span className="inline-block px-3 py-1 text-xs font-medium text-gray-500 bg-gray-100 dark:bg-gray-800 rounded-full">
+                  {formatMessageDate(new Date(date))}
+                </span>
+              </div>
+              {dateMessages.map((msg) => {
+                const messageKey = `msg-${msg.messageId || msg.timestamp}-${msg.senderId}`;
+                return (
+                  <MessageBubble
+                    key={messageKey}
+                    message={msg}
+                    isCurrentUser={msg.senderId === currentUserId}
+                  />
+                );
+              })}
+            </div>
+          ))
+        )}
+        {isTyping && <TypingIndicator />}
+        <div ref={messagesEndRef} />
+      </AnimatePresence>
+    </div>
+  );
+};
