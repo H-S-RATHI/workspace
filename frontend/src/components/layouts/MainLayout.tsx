@@ -51,7 +51,7 @@ const MainLayout = () => {
         </div>
 
         {/* Bottom Navigation - Compact for mobile */}
-        <div className="flex-shrink-0 border-t border-gray-200 bg-white/95 backdrop-blur-sm">
+        <div className="flex-shrink-0 bg-white border-t border-gray-200 relative z-10">
           <MobileNavigation />
         </div>
       </div>

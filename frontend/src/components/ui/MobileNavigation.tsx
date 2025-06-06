@@ -62,9 +62,9 @@ const MobileNavigation = () => {
   };
 
   return (
-    <div className="h-20 bg-white border-t border-gray-200 flex items-center justify-around px-4 shadow-lg relative">
-      {/* Background blur effect */}
-      <div className="absolute inset-0 bg-white/95 backdrop-blur-sm"></div>
+    <div className="h-20 bg-white border-t border-gray-200 flex items-center justify-around px-4 relative">
+      {/* Background */}
+      <div className="absolute inset-0 bg-white"></div>
       
       {tabs.map((tab) => {
         const Icon = tab.icon;
@@ -76,33 +76,25 @@ const MobileNavigation = () => {
             to={tab.path}
             className="relative z-10 flex flex-col items-center justify-center py-2 px-3 min-w-[60px] group"
           >
-            {/* Active indicator background */}
+            {/* Active indicator dot */}
             {active && (
               <motion.div
                 layoutId="mobile-tab-indicator"
-                className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-12 h-12 bg-gray-100 rounded-2xl"
+                className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-blue-500"
                 initial={false}
-                transition={{ type: 'spring', bounce: 0.3, duration: 0.6 }}
+                transition={{ type: 'spring', bounce: 0.3, duration: 0.3 }}
               />
             )}
             
             <div className="relative z-10 flex flex-col items-center">
               {/* Icon container */}
               <div className={clsx(
-                'relative p-2 rounded-xl transition-all duration-200',
+                'relative p-2 transition-colors duration-200',
                 active 
-                  ? 'bg-white shadow-md transform -translate-y-1' 
-                  : 'group-hover:bg-gray-50'
+                  ? 'text-blue-500' 
+                  : 'text-gray-500 group-hover:text-gray-700'
               )}>
-                <Icon 
-                  size={24} 
-                  className={clsx(
-                    'transition-colors duration-200',
-                    active 
-                      ? getColorClasses(tab.color)
-                      : 'text-gray-500 group-hover:text-gray-700'
-                  )} 
-                />
+                <Icon size={24} />
                 
                 {/* Badge */}
                 {tab.badge > 0 && (

@@ -131,10 +131,16 @@ const TopBar = ({ currentTab, isMobile }: TopBarProps) => {
                 
                 {isActive && (
                   <motion.div
-                    layoutId="mobile-subtab-indicator"
+                    key={`mobile-indicator-${tab.id}`}
                     className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 w-8 h-1 ${colors.activeIndicator} rounded-t-full`}
-                    initial={false}
-                    transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ 
+                      opacity: 1,
+                      x: '-50%',
+                      width: '2rem'
+                    }}
+                    exit={{ opacity: 0 }}
+                    transition={{ type: 'spring', bounce: 0.2, duration: 0.3 }}
                   />
                 )}
               </button>
@@ -170,10 +176,15 @@ const TopBar = ({ currentTab, isMobile }: TopBarProps) => {
                 
                 {isActive && (
                   <motion.div
-                    layoutId="desktop-subtab-bg"
+                    key={`desktop-indicator-${tab.id}`}
                     className="absolute inset-0 bg-white rounded-lg shadow-sm"
-                    initial={false}
-                    transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ 
+                      opacity: 1,
+                      width: '100%'
+                    }}
+                    exit={{ opacity: 0 }}
+                    transition={{ type: 'spring', bounce: 0.2, duration: 0.3 }}
                     style={{ zIndex: -1 }}
                   />
                 )}
