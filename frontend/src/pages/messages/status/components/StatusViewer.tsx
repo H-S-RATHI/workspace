@@ -8,23 +8,12 @@ import {
   MoreVertical, 
   Flag,
   Bookmark,
-  ChevronDown,
-  ChevronUp,
-  Image as ImageIcon,
-  Video as VideoIcon,
-  FileText as TextIcon,
   Pause,
   Play
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { formatDistanceToNow } from 'date-fns';
 
-// Add NodeJS type definition
-declare global {
-  namespace NodeJS {
-    interface Timeout {}
-  }
-}
+// No need for global declaration with modern TypeScript
 
 interface Status {
   statusId: string;
@@ -53,9 +42,8 @@ interface StatusViewerProps {
   statuses: Status[];
   currentIndex: number;
   onClose: () => void;
-  onNext: () => void;
   onPrevious: () => void;
-  onViewStatus: (statusId: string) => void;
+  onViewStatus: (statusId: string) => Promise<boolean>;
   onLike: (statusId: string) => void;
   onReply: (statusId: string, text: string) => void;
   onShare: (statusId: string) => void;
@@ -68,7 +56,6 @@ const StatusViewer: React.FC<StatusViewerProps> = ({
   statuses,
   currentIndex,
   onClose,
-  onNext,
   onPrevious,
   onViewStatus,
   onLike,
@@ -86,7 +73,7 @@ const StatusViewer: React.FC<StatusViewerProps> = ({
   const [currentStatusIndex, setCurrentStatusIndex] = useState(currentIndex);
   
   const status = statuses[currentStatusIndex];
-  const progressInterval = useRef<number | null>(null);
+  const progressInterval = useRef<number | undefined>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
   const optionsRef = useRef<HTMLDivElement>(null);
   
@@ -105,9 +92,11 @@ const StatusViewer: React.FC<StatusViewerProps> = ({
     const duration = STORY_DURATION; // 5 seconds per status
     const startTime = Date.now();
     
+    // Clear any existing interval
     if (progressInterval.current) {
       clearInterval(progressInterval.current);
     }
+    
     progressInterval.current = window.setInterval(() => {
       const elapsed = Date.now() - startTime;
       const newProgress = Math.min((elapsed / duration) * 100, 100);
@@ -124,9 +113,9 @@ const StatusViewer: React.FC<StatusViewerProps> = ({
     }, 50);
     
     return () => {
-      if (progressInterval.current) {
-        window.clearInterval(progressInterval.current);
-        progressInterval.current = null;
+      if (progressInterval.current !== undefined) {
+        clearInterval(progressInterval.current);
+        progressInterval.current = undefined;
       }
     };
   }, [isPaused, currentStatusIndex, isLastStatus, onClose, STORY_DURATION]);
@@ -134,9 +123,21 @@ const StatusViewer: React.FC<StatusViewerProps> = ({
   // Reset progress when status changes
   useEffect(() => {
     setProgress(0);
-    if (status) {
-      onViewStatus(status.statusId);
-    }
+    const markStatusAsViewed = async () => {
+      if (status && !status.hasViewed) {
+        try {
+          await onViewStatus(status.statusId);
+          // Optionally update the local state to reflect the view
+          // This assumes your status object has a hasViewed property
+          // If not, you might need to update the parent component's state
+        } catch (error) {
+          console.error('Failed to mark status as viewed:', error);
+          // You might want to show a toast or retry logic here
+        }
+      }
+    };
+    
+    markStatusAsViewed();
   }, [currentStatusIndex, status, onViewStatus]);
 
   // Handle keyboard navigation
@@ -176,9 +177,24 @@ const StatusViewer: React.FC<StatusViewerProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Handle reply submission
+  const handleReplySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (replyText.trim() && status) {
+      try {
+        await onReply(status.statusId, replyText);
+        setReplyText('');
+        setShowReplyInput(false);
+      } catch (error) {
+        console.error('Failed to submit reply:', error);
+        // You might want to show an error message to the user here
+      }
+    }
+  };
+
   const handleNext = () => {
     if (isLastStatus) {
-      onNext();
+      onClose();
     } else {
       setCurrentStatusIndex(prev => prev + 1);
     }
