@@ -86,11 +86,25 @@ export const createConversationActions = (
     }
   },
   // Select a conversation and load its messages
-  selectConversation: async (conversationId: string) => {
-    set({ isLoading: true, error: null, hasMoreMessages: true });
+  selectConversation: async (conversationId: string, forceReload = false) => {
+    const state = get();
+    
+    // If already selected and not forcing a reload, do nothing
+    if (!forceReload && state.currentConversation?.convoId === conversationId) {
+      return;
+    }
+    
+    set({ 
+      isLoading: true, 
+      error: null, 
+      hasMoreMessages: true,
+      messages: [], // Clear existing messages when switching conversations
+      currentPage: 1
+    });
+    
     try {
       // Find the conversation in the list
-      const conversation = get().conversations.find(c => c.convoId === conversationId);
+      const conversation = state.conversations.find(c => c.convoId === conversationId);
       if (conversation) {
         set({ 
           currentConversation: conversation,

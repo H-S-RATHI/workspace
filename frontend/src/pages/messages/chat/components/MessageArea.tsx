@@ -68,8 +68,35 @@ export const MessageArea = ({
                   {formatMessageDate(new Date(date))}
                 </span>
               </div>
-              {dateMessages.map((msg) => {
-                const messageKey = `msg-${msg.messageId || msg.timestamp}-${msg.senderId}`;
+              {dateMessages.map((msg, index) => {
+                if (!msg) {
+                  console.warn('Undefined message in dateMessages array at index', index);
+                  return null;
+                }
+                
+                // Ensure we have required properties
+                const hasRequiredProps = msg.senderId !== undefined && msg.timestamp !== undefined;
+                if (!hasRequiredProps) {
+                  console.warn('Message is missing required properties:', {
+                    messageId: msg.messageId,
+                    senderId: msg.senderId,
+                    timestamp: msg.timestamp,
+                    index,
+                    message: msg
+                  });
+                }
+                
+                // Create a unique key using all available identifiers
+                const keyParts = [
+                  'msg',
+                  msg.messageId || 'no-id',
+                  msg.timestamp || 'no-ts',
+                  msg.senderId || 'no-sender',
+                  `idx-${index}`
+                ].filter(Boolean);
+                
+                const messageKey = keyParts.join('-');
+                
                 return (
                   <MessageBubble
                     key={messageKey}
