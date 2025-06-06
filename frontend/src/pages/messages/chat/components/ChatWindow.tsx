@@ -1,40 +1,39 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { useSocketStore } from '@/store/socket/store';
+import { useLogger } from '@/hooks/useLogger';
 import { ChatHeader } from './ChatHeader';
 import { MessageArea } from './MessageArea';
 import { ChatInput } from './ChatInput';
 
 const ChatWindow = () => {
-  // Memoize store selectors to prevent unnecessary re-renders
   const { accessToken } = useAuthStore();
-  const { connect, disconnect, isConnected } = useSocketStore();
+  const { connect, disconnect } = useSocketStore();
+  const { debug } = useLogger('ChatWindow');
   
-  // Only log renders in development
-  if (process.env.NODE_ENV === 'development') {
-    console.log('ChatWindow component rendered', { isConnected });
-  }
-  
-  // Handle WebSocket connection
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('ChatWindow mounted - setting up WebSocket');
+  // Memoize the WebSocket connection logic
+  const setupWebSocket = useCallback(() => {
+    debug('Setting up WebSocket connection');
+    
+    if (!accessToken) {
+      debug('No access token available, cannot connect WebSocket');
+      return;
     }
     
-    if (accessToken) {
-      console.log('Connecting to WebSocket...');
-      connect();
-    } else {
-      console.warn('No access token available, cannot connect WebSocket');
-    }
+    connect();
     
     return () => {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('ChatWindow unmounting - cleaning up WebSocket');
-      }
+      debug('Cleaning up WebSocket connection');
       disconnect();
     };
-  }, [accessToken, connect, disconnect]);
+  }, [accessToken, connect, disconnect, debug]);
+  
+  // Set up WebSocket connection on mount and clean up on unmount
+  useEffect(() => {
+    setupWebSocket();
+  }, [setupWebSocket]);
+  
+
 
   return (
     <div className="flex flex-col h-full bg-white dark:bg-gray-900 rounded-lg shadow-lg overflow-hidden">
