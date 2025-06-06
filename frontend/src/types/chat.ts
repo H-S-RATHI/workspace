@@ -27,6 +27,8 @@ export interface Conversation {
   unreadCount: number
   members: ConversationMember[]
   createdAt: string
+  // For direct conversations (isGroup = false), this is the ID of the other user
+  userId?: string
 }
 
 export interface ConversationMember {

@@ -1,4 +1,5 @@
 import { useMemo, useRef, useEffect, useCallback, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Phone, Video, MoreVertical } from 'lucide-react';
 import { useChatStore } from '../../../../store/chat';
 import { useAuthStore } from '../../../../store/auth';
@@ -44,7 +45,7 @@ interface MobileChatWindowProps {
 }
 
 const MobileChatWindow = ({ onBack }: MobileChatWindowProps) => {
-  const {
+  const { 
     currentConversation,
     messages = [],
     sendMessage: sendMessageAction,
@@ -55,8 +56,23 @@ const MobileChatWindow = ({ onBack }: MobileChatWindowProps) => {
     error: chatError
   } = useChatStore();
   
-  const currentUser = useAuthStore((state) => state.user);
+  const { user: currentUser } = useAuthStore();
+  const navigate = useNavigate();
   const currentUserId = currentUser?.userId || '';
+  
+  // Get the other user's ID from conversation members for direct messages
+  const otherUserId = useMemo(() => {
+    if (!currentConversation) return null;
+    if (currentConversation.isGroup) return null;
+    if (!currentConversation.members?.length) return null;
+    
+    // Find the member who is not the current user
+    const otherMember = currentConversation.members.find(
+      member => member.userId !== currentUserId
+    );
+    
+    return otherMember?.userId || null;
+  }, [currentConversation, currentUserId]);
   const [message, setMessage] = useState('');
   
   // Refs for scroll handling
@@ -201,8 +217,31 @@ const MobileChatWindow = ({ onBack }: MobileChatWindowProps) => {
             {currentConversation.displayName?.charAt(0).toUpperCase() || 'C'}
           </span>
         </div>
-        <div className="flex-1">
-          <h3 className="font-semibold text-lg">{currentConversation.displayName}</h3>
+        <div 
+          className="flex-1 cursor-pointer" 
+          onClick={() => {
+            console.log('MobileChatWindow - Clicked on user name:', {
+              displayName: currentConversation.displayName,
+              isGroup: currentConversation.isGroup,
+              otherUserId,
+              allProps: currentConversation
+            });
+            
+            // For direct conversations, use the other user's ID
+            // For group chats, we don't have a single user to link to
+            if (!currentConversation.isGroup && otherUserId) {
+              console.log('Mobile - Navigating to profile:', `/profile/${otherUserId}`);
+              navigate(`/profile/${otherUserId}`);
+            } else {
+              console.log('Mobile - Not navigating - reason:', 
+                currentConversation.isGroup ? 'This is a group chat' : 'No other user ID available');
+            }
+          }}
+        >
+          <h3 className="font-semibold text-lg hover:underline">
+            {currentConversation.displayName}
+            {currentConversation.isGroup && ' (Group)'}
+          </h3>
           <p className="text-xs text-white/80">Online</p>
         </div>
         <div className="flex items-center space-x-2">
@@ -233,13 +272,20 @@ const MobileChatWindow = ({ onBack }: MobileChatWindowProps) => {
           Object.entries(groupedMessages).map(([date, dateMessages]) => (
             <div key={`date-${date}`} className="mb-4">
               <DateHeader date={date} />
-              {dateMessages.map((msg) => (
-                <MessageBubble
-                  key={`msg-${msg.messageId || msg.timestamp}-${msg.senderId}`}
-                  message={msg}
-                  isCurrentUser={msg.senderId === currentUserId}
-                />
-              ))}
+              {dateMessages.map((msg, index) => {
+                // Create a unique key using messageId + timestamp + index as fallback
+                const messageKey = msg.messageId 
+                  ? `msg-${msg.messageId}`
+                  : `msg-${msg.timestamp}-${msg.senderId}-${index}`;
+                
+                return (
+                  <MessageBubble
+                    key={messageKey}
+                    message={msg}
+                    isCurrentUser={msg.senderId === currentUserId}
+                  />
+                );
+              })}
             </div>
           ))
         )}

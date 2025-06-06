@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Send, 
   Paperclip, 
@@ -176,10 +177,28 @@ const ChatWindow = () => {
   
   // Memoize store selectors to prevent unnecessary re-renders
   const { currentConversation } = useChatStore();
+  const { user } = useAuthStore();
+  
+  // Get the other user's ID from conversation members for direct messages
+  const getOtherUserId = useCallback(() => {
+    if (!currentConversation) return null;
+    if (currentConversation.isGroup) return null;
+    if (!currentConversation.members?.length) return null;
+    
+    // Find the member who is not the current user
+    const otherMember = currentConversation.members.find(
+      member => member.userId !== user?.id
+    );
+    
+    return otherMember?.userId || null;
+  }, [currentConversation, user?.id]);
+  
+  const otherUserId = currentConversation ? getOtherUserId() : null;
   const messages = useChatStore((state) => state.messages || []);
   const sendMessage = useChatStore((state) => state.sendMessage);
   const isSending = useChatStore((state) => state.isSending || false);
   const currentUserId = useAuthStore((state) => state.user?.userId || '');
+  const navigate = useNavigate();
   
   // WebSocket connection is handled by WebSocketProvider
   // No need to access isConnected here as it's managed at the provider level
@@ -314,8 +333,28 @@ const ChatWindow = () => {
             <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white font-medium">
               {getInitials(currentConversation.displayName || '')}
             </div>
-            <div>
-              <h3 className="font-semibold text-lg">{currentConversation.displayName}</h3>
+            <div className="cursor-pointer" onClick={() => {
+              console.log('ChatWindow - Clicked on user name:', {
+                displayName: currentConversation.displayName,
+                isGroup: currentConversation.isGroup,
+                otherUserId,
+                allProps: currentConversation
+              });
+              
+              // For direct conversations, use the other user's ID
+              // For group chats, we don't have a single user to link to
+              if (!currentConversation.isGroup && otherUserId) {
+                console.log('Navigating to profile:', `/profile/${otherUserId}`);
+                navigate(`/profile/${otherUserId}`);
+              } else {
+                console.log('Not navigating - reason:', 
+                  currentConversation.isGroup ? 'This is a group chat' : 'No other user ID available');
+              }
+            }}>
+              <h3 className="font-semibold text-lg hover:underline">
+                {currentConversation.displayName}
+                {currentConversation.isGroup && ' (Group)'}
+              </h3>
               <p className="text-xs text-white/80">
                 {isTyping ? 'typing...' : 'Online'}
               </p>
@@ -363,9 +402,20 @@ const ChatWindow = () => {
                       {formatMessageDate(new Date(date))}
                     </span>
                   </div>
-                  {dateMessages.map((msg) => {
-                    // Ensure we have a valid message ID
-                    const messageKey = `msg-${msg.messageId || msg.timestamp}-${msg.senderId}`;
+                  {dateMessages.map((msg, index) => {
+                    // Create a unique key using messageId + timestamp + index as fallback
+                    const messageKey = msg.messageId 
+                      ? `msg-${msg.messageId}`
+                      : `msg-${msg.timestamp}-${msg.senderId}-${index}`;
+                    
+                    // Log any potential duplicate keys for debugging
+                    if (msg.messageId) {
+                      console.log(`Rendering message with key: ${messageKey}`, {
+                        messageId: msg.messageId,
+                        content: msg.contentText
+                      });
+                    }
+                    
                     return (
                       <MessageBubble
                         key={messageKey}
