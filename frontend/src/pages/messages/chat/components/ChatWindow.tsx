@@ -1,5 +1,4 @@
-import { useEffect, useCallback } from 'react';
-import { useChatStore } from '@/store/chatStore';
+import { useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { useSocketStore } from '@/store/socket/store';
 import { ChatHeader } from './ChatHeader';
@@ -8,7 +7,6 @@ import { ChatInput } from './ChatInput';
 
 const ChatWindow = () => {
   // Memoize store selectors to prevent unnecessary re-renders
-  const { isSending, sendMessage } = useChatStore();
   const { accessToken } = useAuthStore();
   const { connect, disconnect, isConnected } = useSocketStore();
   
@@ -38,18 +36,6 @@ const ChatWindow = () => {
     };
   }, [accessToken, connect, disconnect]);
 
-  // Auto-scroll is now handled in MessageArea component
-  
-  // Handle sending a message
-  const handleSendMessage = useCallback(async (content: string) => {
-    try {
-      await sendMessage(content);
-      // Auto-scroll is handled in MessageArea component
-    } catch (error) {
-      console.error('Failed to send message:', error);
-    }
-  }, [sendMessage]);
-
   return (
     <div className="flex flex-col h-full bg-white dark:bg-gray-900 rounded-lg shadow-lg overflow-hidden">
       <ChatHeader />
@@ -60,10 +46,7 @@ const ChatWindow = () => {
       </div>
       
       {/* Message input */}
-      <ChatInput 
-        isSending={isSending}
-        onSendMessage={handleSendMessage}
-      />
+      <ChatInput />
     </div>
   );
 };

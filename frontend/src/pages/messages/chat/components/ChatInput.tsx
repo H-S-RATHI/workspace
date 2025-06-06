@@ -1,21 +1,19 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
 import { Smile, Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useChatStore } from '@/store/chatStore';
 
 // Emoji data
 const EMOJIS = ['😀', '😂', '😍', '😎', '👍', '❤️', '🔥', '🎉', '🙏', '👋'];
 
 interface ChatInputProps {
-  isSending: boolean;
-  onSendMessage: (content: string) => Promise<void>;
   onTypingChange?: (isTyping: boolean) => void;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
-  isSending,
-  onSendMessage,
   onTypingChange
 }) => {
+  const { sendMessage, isSending } = useChatStore();
   const [message, setMessage] = useState('');
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
@@ -36,13 +34,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     if (!trimmedMessage || isSending) return;
     
     try {
-      await onSendMessage(trimmedMessage);
+      await sendMessage(trimmedMessage);
       setMessage('');
       setIsEmojiPickerOpen(false);
     } catch (error) {
       console.error('Failed to send message:', error);
     }
-  }, [message, isSending, onSendMessage]);
+  }, [message, isSending, sendMessage]);
   
   // Handle emoji selection
   const handleEmojiSelect = useCallback((emoji: string) => {
