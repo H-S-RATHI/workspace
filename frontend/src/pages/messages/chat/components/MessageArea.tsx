@@ -1,15 +1,9 @@
 import { AnimatePresence } from 'framer-motion';
-import { format, isToday, isYesterday } from 'date-fns';
+import { format } from 'date-fns';
 import { Message } from '@/types/chat';
 import { MessageBubble } from './MessageBubble';
 import { MessageCircle } from 'lucide-react';
-
-// Format message date header
-const formatMessageDate = (date: Date): string => {
-  if (isToday(date)) return 'Today';
-  if (isYesterday(date)) return 'Yesterday';
-  return format(date, 'MMMM d, yyyy');
-};
+import { formatMessageDate } from './DateHeader';
 
 // Typing indicator component
 const TypingIndicator = () => (

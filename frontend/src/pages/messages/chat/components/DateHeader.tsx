@@ -1,4 +1,4 @@
-import { cn } from './utils';
+import { format, isToday, isYesterday } from 'date-fns';
 
 interface DateHeaderProps {
   date: string;
@@ -18,36 +18,3 @@ export const DateHeader = ({ date }: DateHeaderProps) => (
     </span>
   </div>
 );
-
-// Helper functions
-function isToday(date: Date): boolean {
-  const today = new Date();
-  return date.getDate() === today.getDate() &&
-    date.getMonth() === today.getMonth() &&
-    date.getFullYear() === today.getFullYear();
-}
-
-function isYesterday(date: Date): boolean {
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  return date.getDate() === yesterday.getDate() &&
-    date.getMonth() === yesterday.getMonth() &&
-    date.getFullYear() === yesterday.getFullYear();
-}
-
-function format(date: Date, formatStr: string): string {
-  // Simple format implementation - in a real app, use date-fns or similar
-  const options: Intl.DateTimeFormatOptions = {};
-  
-  if (formatStr.includes('MMMM')) {
-    options.month = 'long';
-  }
-  if (formatStr.includes('d')) {
-    options.day = 'numeric';
-  }
-  if (formatStr.includes('yyyy')) {
-    options.year = 'numeric';
-  }
-  
-  return date.toLocaleDateString(undefined, options);
-}
