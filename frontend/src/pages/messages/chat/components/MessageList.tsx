@@ -2,7 +2,7 @@ import React, { RefObject } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { DateHeader } from './DateHeader';
 import { MessageBubble } from './MessageBubble';
-import { TypingIndicator } from './EmptyState';
+import { TypingIndicator } from './MessageArea';
 import type { Message } from '../../../../types/chat';
 
 interface MessageListProps {
