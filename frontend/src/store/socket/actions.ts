@@ -271,5 +271,37 @@ export const createCallActions = (
     } else {
       console.error('[SocketStore][endCall] Cannot end call: Socket not connected');
     }
+  },
+  
+  sendIceCandidate: (targetUserId: string, callId: string, candidate: RTCIceCandidate) => {
+    const { socket } = get();
+    
+    console.log('[SocketStore][sendIceCandidate] Sending ICE candidate:', {
+      targetUserId,
+      callId,
+      candidate: candidate ? {
+        candidate: candidate.candidate,
+        sdpMid: candidate.sdpMid,
+        sdpMLineIndex: candidate.sdpMLineIndex,
+        usernameFragment: candidate.usernameFragment
+      } : null,
+      socketConnected: socket?.connected
+    });
+    
+    if (socket?.connected) {
+      socket.emit(SOCKET_EVENTS.ICE_CANDIDATE, {
+        targetUserId,
+        callId,
+        candidate: candidate ? {
+          candidate: candidate.candidate,
+          sdpMid: candidate.sdpMid,
+          sdpMLineIndex: candidate.sdpMLineIndex,
+          usernameFragment: candidate.usernameFragment
+        } : null
+      });
+      console.log('[SocketStore][sendIceCandidate] ICE candidate sent successfully');
+    } else {
+      console.error('[SocketStore][sendIceCandidate] Cannot send ICE candidate: Socket not connected');
+    }
   }
 })

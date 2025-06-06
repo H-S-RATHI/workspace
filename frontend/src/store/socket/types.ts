@@ -56,6 +56,7 @@ export interface SocketActions {
   answerCall: (callId: string, answer: any) => void
   rejectCall: (callId: string) => void
   endCall: (callId: string) => void
+  sendIceCandidate: (targetUserId: string, callId: string, candidate: RTCIceCandidate | null) => void
 }
 export type SocketStore = {
   socket: Socket | null
@@ -73,6 +74,7 @@ export type SocketStore = {
   answerCall: (callId: string, answer: any) => void
   rejectCall: (callId: string) => void
   endCall: (callId: string) => void
+  sendIceCandidate: (targetUserId: string, callId: string, candidate: RTCIceCandidate | null) => void
   emit: <T = any>(event: string, data: T) => void
 }
 // Re-export Message type for convenience

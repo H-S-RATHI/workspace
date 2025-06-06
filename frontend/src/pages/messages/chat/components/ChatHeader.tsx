@@ -1,8 +1,10 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Phone, Video, Search, MoreVertical } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { useCallStore } from '@/store/call/store';
 import { useSocketStore } from '@/store/socket/store';
 import { useChatStore } from '@/store/chatStore';
+import { useAuthStore } from '@/store/authStore';
 import { CallDialog } from './CallDialog';
 
 // Utility function to merge class names
@@ -18,7 +20,6 @@ export interface ChatHeaderProps {
 }
 
 export const ChatHeader = ({ className = '' }: ChatHeaderProps) => {
-  const [isCallDialogOpen, setIsCallDialogOpen] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   
   // Get data from stores
@@ -28,7 +29,6 @@ export const ChatHeader = ({ className = '' }: ChatHeaderProps) => {
 
   // Derive values from conversation
   const displayName = currentConversation?.displayName || 'Unknown User';
-  const userId = currentConversation?.userId || '';
   const avatarUrl = currentConversation?.displayPhoto;
   const status: UserStatus = isTyping ? 'typing' : 'online';
 
@@ -57,32 +57,53 @@ export const ChatHeader = ({ className = '' }: ChatHeaderProps) => {
     console.log('Search clicked');
   }, []);
 
-  // Handle call start
-  const handleCallStart = useCallback(async (type: 'audio' | 'video') => {
-    if (!userId) {
-      console.error('[ChatHeader] Cannot start call: No user ID provided');
-      return;
-    }
+  // State for call dialog
+  const [isCallDialogOpen, setIsCallDialogOpen] = useState(false);
+  const [targetUserId, setTargetUserId] = useState<string | null>(null);
 
-    if (!socket) {
-      console.error('[ChatHeader] Cannot start call: WebSocket connection not available');
+  // Handle call start from dialog
+  const handleCallStart = useCallback(async (type: 'audio' | 'video') => {
+    if (!currentConversation || !socket || !initiateCall) {
+      toast.error('Unable to start call. Please try again.');
       return;
     }
 
     try {
-      if (!initiateCall) {
-        throw new Error('initiateCall function is not available');
-      }
-      
+      console.log(`[ChatHeader] Starting ${type} call to user ID:`, targetUserId);
       await initiateCall({
-        targetUserId: userId,
+        targetUserId: targetUserId!,
         callType: type,
       });
-      setIsCallDialogOpen(false);
     } catch (error) {
-      console.error('[ChatHeader] Failed to initiate call:', error);
+      console.error(`[ChatHeader] Failed to initiate ${type} call:`, error);
+      toast.error(`Failed to start ${type} call`);
     }
-  }, [userId, socket, initiateCall]);
+  }, [currentConversation, socket, initiateCall, targetUserId]);
+
+  // Open call dialog and set target user
+  const openCallDialog = useCallback(() => {
+    if (!currentConversation) {
+      toast.error('Please select a conversation first');
+      return;
+    }
+
+    if (currentConversation.isGroup) {
+      toast.error('Group calls are not yet supported');
+      return;
+    }
+
+    // Get the target user ID from the conversation
+    const currentUserId = useAuthStore.getState().user?.userId;
+    const otherMember = currentConversation.members?.find(member => member.userId !== currentUserId);
+    
+    if (!otherMember?.userId) {
+      toast.error('Could not identify the user to call');
+      return;
+    }
+
+    setTargetUserId(otherMember.userId);
+    setIsCallDialogOpen(true);
+  }, [currentConversation]);
 
   return (
     <div className={cn('flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700', className)}>
@@ -120,31 +141,54 @@ export const ChatHeader = ({ className = '' }: ChatHeaderProps) => {
 
       {/* Action buttons */}
       <div className="flex items-center space-x-4">
-        <button
-          onClick={() => handleCallStart('audio')}
-          className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-          aria-label="Start voice call"
-          disabled={!socket}
-        >
-          <Phone className="w-5 h-5" />
-        </button>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={openCallDialog}
+            disabled={!currentConversation || !socket}
+            className={cn(
+              'p-2 rounded-full transition-colors',
+              (currentConversation && socket) 
+                ? 'text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:text-gray-300 dark:hover:text-blue-400 dark:hover:bg-gray-700'
+                : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+            )}
+            aria-label={currentConversation && socket ? 'Start a call' : 'Select a conversation to call'}
+            title={currentConversation && socket ? 'Start a call' : 'Select a conversation to call'}
+          >
+            <Phone className="w-5 h-5" />
+          </button>
+          <button
+            onClick={openCallDialog}
+            disabled={!currentConversation || !socket}
+            className={cn(
+              'p-2 rounded-full transition-colors',
+              (currentConversation && socket) 
+                ? 'text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:text-gray-300 dark:hover:text-blue-400 dark:hover:bg-gray-700'
+                : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+            )}
+            aria-label={currentConversation && socket ? 'Start a video call' : 'Select a conversation to call'}
+            title={currentConversation && socket ? 'Start a video call' : 'Select a conversation to call'}
+          >
+            <Video className="w-5 h-5" />
+          </button>
+        </div>
+
+        {targetUserId && (
+          <CallDialog
+            isOpen={isCallDialogOpen}
+            onClose={() => setIsCallDialogOpen(false)}
+            onCallStart={handleCallStart}
+            recipientName={currentConversation?.displayName || 'Unknown User'}
+            recipientAvatar={currentConversation?.displayPhoto}
+          />
+        )}
 
         <button
-          onClick={() => setIsCallDialogOpen(true)}
-          className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-          aria-label="Start video call"
-          disabled={!socket}
+          onClick={handleSearchClick}
+          className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+          aria-label="Search"
         >
-          <Video className="w-5 h-5" />
+          <Search className="w-5 h-5" />
         </button>
-
-        <CallDialog
-          isOpen={isCallDialogOpen}
-          onClose={() => setIsCallDialogOpen(false)}
-          onCallStart={handleCallStart}
-          recipientName={displayName}
-          recipientAvatar={avatarUrl}
-        />
 
         <button
           onClick={handleMenuClick}
@@ -152,14 +196,6 @@ export const ChatHeader = ({ className = '' }: ChatHeaderProps) => {
           aria-label="Menu"
         >
           <MoreVertical className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-        </button>
-
-        <button
-          onClick={handleSearchClick}
-          className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-          aria-label="Search"
-        >
-          <Search className="w-5 h-5 text-gray-600 dark:text-gray-300" />
         </button>
       </div>
     </div>

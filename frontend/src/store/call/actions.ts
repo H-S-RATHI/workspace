@@ -33,7 +33,7 @@ export const createCallActions = (set: any, get: any): CallActions => ({
     }
     
     // Get the socket instance
-    const { socket } = socketStore;
+    // The socket is accessed through socketStore methods, so we don't need to destructure it
     let stream: MediaStream | null = null;
     
     try {
@@ -65,6 +65,26 @@ export const createCallActions = (set: any, get: any): CallActions => ({
       // Add event listeners for ICE candidates
       peerConnection.onicecandidate = (event) => {
         console.log('[CallStore] ICE candidate:', event.candidate);
+        
+        // When we get an ICE candidate, send it to the other peer
+        if (event.candidate) {
+          // Get the current call ID from the store
+          const { activeCall } = get();
+          if (!activeCall) {
+            console.warn('[CallStore] No active call when trying to send ICE candidate');
+            return;
+          }
+          
+          // Send the ICE candidate to the other peer
+          const { sendIceCandidate } = useSocketStore.getState();
+          sendIceCandidate(
+            activeCall.otherParty.userId,
+            activeCall.callId,
+            event.candidate
+          );
+        } else {
+          console.log('[CallStore] All ICE candidates have been gathered');
+        }
       };
       
       peerConnection.oniceconnectionstatechange = () => {
@@ -137,6 +157,31 @@ export const createCallActions = (set: any, get: any): CallActions => ({
         throw new Error('Failed to create local description');
       }
       
+      // Set up ICE candidate handling
+      peerConnection.onicecandidate = (event: RTCPeerConnectionIceEvent) => {
+        console.log('[CallStore] ICE candidate:', event.candidate);
+        
+        // When we get an ICE candidate, send it to the other peer
+        if (event.candidate) {
+          // Get the current call ID from the store
+          const { activeCall } = get();
+          if (!activeCall) {
+            console.warn('[CallStore] No active call when trying to send ICE candidate');
+            return;
+          }
+          
+          // Send the ICE candidate to the other peer
+          const { sendIceCandidate } = useSocketStore.getState();
+          sendIceCandidate(
+            activeCall.otherParty.userId,
+            activeCall.callId,
+            event.candidate
+          );
+        } else {
+          console.log('[CallStore] All ICE candidates have been gathered');
+        }
+      };
+      
       console.log('[CallStore] Call offer sent successfully');
       return { callId };
       
@@ -172,8 +217,6 @@ export const createCallActions = (set: any, get: any): CallActions => ({
       console.error('[CallStore] Cannot answer call: WebSocket is not connected');
       throw new Error('WebSocket connection is not established');
     }
-    
-    const { socket } = socketStore;
     const peerConnection = activeCall.peerConnection;
     
     if (!peerConnection) {
@@ -195,6 +238,28 @@ export const createCallActions = (set: any, get: any): CallActions => ({
       } else {
         throw new Error('Failed to create local description');
       }
+      
+      // Set up ICE candidate handling for the answerer
+      peerConnection.onicecandidate = (event: RTCPeerConnectionIceEvent) => {
+        console.log('[CallStore] ICE candidate (answerer):', event.candidate);
+        
+        if (event.candidate) {
+          const { activeCall } = get();
+          if (!activeCall) {
+            console.warn('[CallStore] No active call when trying to send ICE candidate (answerer)');
+            return;
+          }
+          
+          const { sendIceCandidate } = useSocketStore.getState();
+          sendIceCandidate(
+            activeCall.otherParty.userId,
+            activeCall.callId,
+            event.candidate
+          );
+        } else {
+          console.log('[CallStore] All ICE candidates have been gathered (answerer)');
+        }
+      };
       
       console.log('[CallStore] Call answered successfully');
       
