@@ -2,17 +2,20 @@ import { io } from 'socket.io-client'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '../authStore'
 import type { SocketStore } from './types'
-import { SOCKET_CONFIG, SOCKET_EVENTS, INITIAL_SOCKET_STATE } from './constants'
+import { SOCKET_CONFIG, SOCKET_EVENTS } from './constants'
 import { setupSocketEventHandlers } from './eventHandlers'
+
 // Connection Management Actions
 export const createConnectionActions = (
   set: (partial: Partial<SocketStore> | ((state: SocketStore) => Partial<SocketStore>)) => void,
   get: () => SocketStore
 ) => ({
   connect: () => {
-    const { accessToken } = useAuthStore.getState()
+    const accessToken = useAuthStore.getState().accessToken
+    const state = get()
     
-    if (!accessToken || get().socket?.connected) {
+    if (!accessToken || state.socket?.connected) {
+      console.log('Skipping WebSocket connection -', !accessToken ? 'no access token' : 'already connected')
       return
     }
     try {
@@ -87,7 +90,7 @@ export const createConnectionActions = (
 })
 // Conversation Management Actions
 export const createConversationActions = (
-  set: (partial: Partial<SocketStore>) => void,
+  _set: (partial: Partial<SocketStore>) => void,
   get: () => SocketStore
 ) => ({
   joinConversation: (conversationId: string) => {
@@ -107,7 +110,7 @@ export const createConversationActions = (
 })
 // Message Management Actions
 export const createMessageActions = (
-  set: (partial: Partial<SocketStore>) => void,
+  _set: (partial: Partial<SocketStore>) => void,
   get: () => SocketStore
 ) => ({
   sendMessage: (conversationId: string, message: string, messageType = 'TEXT') => {
@@ -138,7 +141,7 @@ export const createMessageActions = (
 })
 // Call Management Actions
 export const createCallActions = (
-  set: (partial: Partial<SocketStore>) => void,
+  _set: (partial: Partial<SocketStore>) => void,
   get: () => SocketStore
 ) => ({
   sendCallOffer: (targetUserId: string, offer: any, callType: 'video' | 'audio') => {

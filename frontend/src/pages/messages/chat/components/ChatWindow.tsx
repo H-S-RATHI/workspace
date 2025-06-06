@@ -12,9 +12,8 @@ import {
   Search,
   Phone,
 } from 'lucide-react';
-import { useChatStore } from '../../../../store/chatStore'
+import { useChatStore } from '@/store/chatStore';
 import { useAuthStore } from '@/store/authStore';
-import { useSocketStore } from '@/store/socketStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, isToday, isYesterday } from 'date-fns';
 import type { Message } from '../../../../types/chat';
@@ -182,31 +181,9 @@ const ChatWindow = () => {
   const isSending = useChatStore((state) => state.isSending || false);
   const currentUserId = useAuthStore((state) => state.user?.userId || '');
   
-  // Handle WebSocket connection
-  const { connect, disconnect, isConnected } = useSocketStore();
-  const { accessToken } = useAuthStore.getState();
-
-  useEffect(() => {
-    if (!accessToken) {
-      console.log('No access token available, skipping WebSocket connection');
-      return;
-    }
-
-    // Connect to WebSocket if not already connected
-    if (!isConnected) {
-      console.log('Connecting to WebSocket...');
-      connect(accessToken);
-    }
-    
-    // Cleanup function
-    return () => {
-      if (isConnected) {
-        console.log('Disconnecting from WebSocket...');
-        disconnect();
-      }
-    };
-  }, [accessToken, connect, disconnect, isConnected]);
-  
+  // WebSocket connection is handled by WebSocketProvider
+  // No need to access isConnected here as it's managed at the provider level
+   
   const [message, setMessage] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
