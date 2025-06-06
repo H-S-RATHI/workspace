@@ -135,24 +135,64 @@ export const setupTypingHandlers = (
 }
 // Call Event Handlers
 export const setupCallHandlers = (socket: Socket) => {
+  // Handle incoming calls
   socket.on(SOCKET_EVENTS.INCOMING_CALL, (data: CallEvent) => {
-    const { callId, callerId, callerUsername, callType } = data
-    console.log('Incoming call:', { callId, callerId, callerUsername, callType })
+    const { callId, callerId, callerUsername, callType, offer } = data;
+    console.log('Incoming call:', { callId, callerId, callerUsername, callType });
+    
     // This will be handled by the call store or components
-  })
-  socket.on(SOCKET_EVENTS.CALL_ANSWERED, (data: CallEvent) => {
-    console.log('Call answered:', data.callId)
-  })
+    const callStore = require('../../../store/callStore').useCallStore.getState();
+    callStore.handleIncomingCall({
+      callId,
+      callerId,
+      callerUsername,
+      callType,
+      offer
+    });
+  });
+  
+  // Handle call answered
+  socket.on(SOCKET_EVENTS.CALL_ANSWERED, async (data: CallEvent & { answer: RTCSessionDescriptionInit }) => {
+    console.log('Call answered:', data.callId);
+    const callStore = require('../../../store/callStore').useCallStore.getState();
+    callStore.answerCall(data.callId, data.answer);
+  });
+  
+  // Handle call rejected
   socket.on(SOCKET_EVENTS.CALL_REJECTED, (data: CallEvent) => {
-    console.log('Call rejected:', data.callId)
-    toast.error('Call was rejected')
-  })
+    console.log('Call rejected:', data.callId);
+    toast.error('Call was rejected');
+    const callStore = require('../../../store/callStore').useCallStore.getState();
+    callStore.endCall(data.callId);
+  });
+  
+  // Handle call ended
   socket.on(SOCKET_EVENTS.CALL_ENDED, (data: CallEvent) => {
-    console.log('Call ended:', data.callId)
-  })
-  socket.on(SOCKET_EVENTS.ICE_CANDIDATE, (data: IceCandidateEvent) => {
-    console.log('ICE candidate received from:', data.fromUserId)
-  })
+    console.log('Call ended:', data.callId);
+    const callStore = require('../../../store/callStore').useCallStore.getState();
+    callStore.endCall(data.callId);
+  });
+  
+  // Handle ICE candidates
+  socket.on(SOCKET_EVENTS.ICE_CANDIDATE, async (data: IceCandidateEvent) => {
+    console.log('ICE candidate received from:', data.fromUserId);
+    const callStore = require('../../../store/callStore').useCallStore.getState();
+    const { activeCall } = callStore;
+    
+    if (activeCall?.peerConnection && data.candidate) {
+      try {
+        await activeCall.peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+      } catch (error) {
+        console.error('Error adding ICE candidate:', error);
+      }
+    }
+  });
+  
+  // Handle call state sync
+  socket.on('call_state_sync', (data: { callId: string, state: any }) => {
+    console.log('Call state sync:', data.callId, data.state);
+    // Handle call state synchronization if needed
+  });
 }
 // Error Event Handlers
 export const setupErrorHandlers = (socket: Socket) => {

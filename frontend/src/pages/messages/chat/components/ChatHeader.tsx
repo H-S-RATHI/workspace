@@ -1,23 +1,41 @@
+import { useState } from 'react';
 import { Phone, Video, Search, MoreVertical } from 'lucide-react';
 import { cn } from './utils';
+import { CallDialog } from './CallDialog';
+import { useCallStore } from '@/store/call';
+import { useAuthStore } from '@/store/auth';
 
 interface ChatHeaderProps {
   name: string;
+  userId: string;
   status: 'online' | 'offline' | 'typing';
   onMenuClick: () => void;
   onSearchClick: () => void;
-  onCallClick: () => void;
-  onVideoCallClick: () => void;
 }
 
 export const ChatHeader = ({
   name,
+  userId,
   status = 'online',
   onMenuClick,
   onSearchClick,
-  onCallClick,
-  onVideoCallClick
 }: ChatHeaderProps) => {
+  const [isCallDialogOpen, setIsCallDialogOpen] = useState(false);
+  const { initiateCall } = useCallStore();
+  // User will be used for future enhancements like caller info
+  const { user: _user } = useAuthStore();
+
+  const handleCallStart = async (type: 'audio' | 'video') => {
+    try {
+      await initiateCall({
+        targetUserId: userId,
+        callType: type,
+      });
+      setIsCallDialogOpen(false);
+    } catch (error) {
+      console.error('Failed to initiate call:', error);
+    }
+  };
   return (
     <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
       <div className="flex items-center space-x-3">
@@ -47,19 +65,24 @@ export const ChatHeader = ({
       </div>
       <div className="flex items-center space-x-4">
         <button 
-          onClick={onCallClick}
+          onClick={() => handleCallStart('audio')}
           className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
           aria-label="Start voice call"
         >
           <Phone className="w-5 h-5" />
         </button>
         <button 
-          onClick={onVideoCallClick}
+          onClick={() => setIsCallDialogOpen(true)}
           className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-          aria-label="Start video call"
         >
           <Video className="w-5 h-5" />
         </button>
+        <CallDialog
+          isOpen={isCallDialogOpen}
+          onClose={() => setIsCallDialogOpen(false)}
+          onCallStart={handleCallStart}
+          recipientName={name}
+        />
         <button 
           onClick={onSearchClick}
           className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
@@ -78,3 +101,5 @@ export const ChatHeader = ({
     </div>
   );
 };
+
+export default ChatHeader;

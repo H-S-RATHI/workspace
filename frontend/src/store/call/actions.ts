@@ -5,9 +5,11 @@ interface InitiateCallParams {
   callType: 'video' | 'audio';
 }
 
+import type { RTCSessionDescriptionInit } from './types';
+
 interface CallActions {
   initiateCall: (params: InitiateCallParams) => Promise<{ callId: string }>;
-  answerCall: (callId: string, answer: any) => void;
+  answerCall: (callId: string, answer: RTCSessionDescriptionInit) => void;
   rejectCall: (callId: string) => void;
   endCall: (callId: string) => void;
 }
@@ -96,29 +98,29 @@ export const createCallActions = (set: any, get: any): CallActions => ({
   },
   
   answerCall: (callId: string, answer: RTCSessionDescriptionInit) => {
-    const { socket } = useSocketStore.getState();
     const { activeCall } = get();
-    
-    if (!socket?.connected || !activeCall?.peerConnection) {
-      console.error('Cannot answer call: No active connection or peer connection');
-      return;
-    }
-    
-    try {
-      // Set remote description with the answer
-      activeCall.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-      
-      // Update call status
-      set({
-        activeCall: {
-          ...activeCall,
-          status: 'ACTIVE',
-        },
+    if (!activeCall || activeCall.callId !== callId) return;
+
+    const peerConnection = activeCall.peerConnection;
+    if (!peerConnection) return;
+
+    // Create a native RTCSessionDescription from the answer
+    const sessionDescription = new RTCSessionDescription(answer);
+
+    peerConnection.setRemoteDescription(sessionDescription)
+      .then(() => {
+        set({
+          activeCall: {
+            ...activeCall,
+            status: 'ACTIVE' as const,
+          },
+        });
+      })
+      .catch((error: Error) => {
+        console.error('Error setting remote description:', error);
+        // Use the endCall from the store
+        get().endCall(callId);
       });
-    } catch (error) {
-      console.error('Error answering call:', error);
-      throw error;
-    }
   },
   
   rejectCall: (callId: string) => {

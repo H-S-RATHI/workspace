@@ -73,6 +73,7 @@ export type SocketStore = {
   answerCall: (callId: string, answer: any) => void
   rejectCall: (callId: string) => void
   endCall: (callId: string) => void
+  emit: <T = any>(event: string, data: T) => void
 }
 // Re-export Message type for convenience
 export type { Message }

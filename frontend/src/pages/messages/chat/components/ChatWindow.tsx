@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+// Icons
 import { 
   Send, 
   Paperclip, 
@@ -8,16 +9,13 @@ import {
   Check,
   CheckCheck,
   MessageCircle,
-  Video,
-  MoreVertical,
-  Search,
-  Phone,
 } from 'lucide-react';
 import { useChatStore } from '@/store/chatStore';
 import { useAuthStore } from '@/store/authStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, isToday, isYesterday } from 'date-fns';
 import type { Message } from '../../../../types/chat';
+import { ChatHeader } from './ChatHeader';
 
 // Utility function to merge class names
 function cn(...classes: (string | boolean | undefined)[]) {
@@ -25,15 +23,15 @@ function cn(...classes: (string | boolean | undefined)[]) {
 }
 
 // Utility function to get user initials
-function getInitials(name: string): string {
+export const getInitials = (name: string): string => {
   if (!name) return '';
   return name
     .split(' ')
-    .filter(part => part.length > 0)
-    .map(part => part[0].toUpperCase())
+    .map(part => part[0])
     .join('')
+    .toUpperCase()
     .substring(0, 2);
-}
+};
 
 // Format message timestamp
 const formatMessageTime = (timestamp: string | Date): string => {
@@ -140,22 +138,9 @@ const MessageBubble = React.memo(({
   );
 });
 
-// Add display name for better debugging
 MessageBubble.displayName = 'MessageBubble';
 
-// Empty state component
-const EmptyState = () => (
-  <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-    <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-4">
-      <MessageCircle className="w-8 h-8 text-blue-500" />
-    </div>
-    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No messages yet</h3>
-    <p className="text-gray-500 dark:text-gray-400 max-w-md">
-      Start the conversation by sending your first message
-    </p>
-  </div>
-);
-
+// EmptyState component has been removed as it was not being used
 // Memoize the component to prevent unnecessary re-renders
 const ChatWindow = () => {
   // Only log renders in development
@@ -187,11 +172,11 @@ const ChatWindow = () => {
     
     // Find the member who is not the current user
     const otherMember = currentConversation.members.find(
-      member => member.userId !== user?.id
+      member => member.userId !== user?.userId
     );
     
     return otherMember?.userId || null;
-  }, [currentConversation, user?.id]);
+  }, [currentConversation, user?.userId]);
   
   const otherUserId = currentConversation ? getOtherUserId() : null;
   const messages = useChatStore((state) => state.messages || []);
@@ -199,8 +184,9 @@ const ChatWindow = () => {
   const isSending = useChatStore((state) => state.isSending || false);
   const currentUserId = useAuthStore((state) => state.user?.userId || '');
   const fetchMessages = useChatStore((state) => state.fetchMessages);
-  const loadMoreMessages = useChatStore((state) => state.loadMoreMessages);
-  const navigate = useNavigate();
+  // Will be used for infinite loading
+  const _loadMoreMessages = useChatStore((state) => state.loadMoreMessages);
+  const _navigate = useNavigate();
   
   // Load messages when currentConversation changes
   useEffect(() => {
@@ -218,7 +204,6 @@ const ChatWindow = () => {
   // No need to access isConnected here as it's managed at the provider level
    
   const [message, setMessage] = useState('');
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -341,55 +326,17 @@ const ChatWindow = () => {
   return (
     <div className="flex-1 flex flex-col h-full bg-gradient-to-b from-blue-50/30 to-white">
       {/* Chat header */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 shadow-sm">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white font-medium">
-              {getInitials(currentConversation.displayName || '')}
-            </div>
-            <div className="cursor-pointer" onClick={() => {
-              console.log('ChatWindow - Clicked on user name:', {
-                displayName: currentConversation.displayName,
-                isGroup: currentConversation.isGroup,
-                otherUserId,
-                allProps: currentConversation
-              });
-              
-              // For direct conversations, use the other user's ID
-              // For group chats, we don't have a single user to link to
-              if (!currentConversation.isGroup && otherUserId) {
-                console.log('Navigating to profile:', `/profile/${otherUserId}`);
-                navigate(`/profile/${otherUserId}`);
-              } else {
-                console.log('Not navigating - reason:', 
-                  currentConversation.isGroup ? 'This is a group chat' : 'No other user ID available');
-              }
-            }}>
-              <h3 className="font-semibold text-lg hover:underline">
-                {currentConversation.displayName}
-                {currentConversation.isGroup && ' (Group)'}
-              </h3>
-              <p className="text-xs text-white/80">
-                {isTyping ? 'typing...' : 'Online'}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-2">
-            <button className="p-2 hover:bg-white/20 rounded-full transition-colors">
-              <Phone className="w-5 h-5" />
-            </button>
-            <button className="p-2 hover:bg-white/20 rounded-full transition-colors">
-              <Video className="w-5 h-5" />
-            </button>
-            <button className="p-2 hover:bg-white/20 rounded-full transition-colors">
-              <Search className="w-5 h-5" />
-            </button>
-            <button className="p-2 hover:bg-white/20 rounded-full transition-colors">
-              <MoreVertical className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-      </div>
+      <ChatHeader
+        name={currentConversation.displayName || 'Chat'}
+        userId={otherUserId || ''}
+        status={isTyping ? 'typing' : 'online'}
+        onMenuClick={() => {
+          console.log('Menu clicked');
+        }}
+        onSearchClick={() => {
+          console.log('Search clicked');
+        }}
+      />
       
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
