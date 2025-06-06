@@ -13,7 +13,8 @@ import {
   Phone,
 } from 'lucide-react';
 import { useChatStore } from '../../../../store/chatStore'
-import { useAuthStore } from '../../../../store/authStore';
+import { useAuthStore } from '@/store/authStore';
+import { useSocketStore } from '@/store/socketStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, isToday, isYesterday } from 'date-fns';
 import type { Message } from '../../../../types/chat';
