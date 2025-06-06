@@ -16,7 +16,22 @@ interface CallActions {
 
 export const createCallActions = (set: any, get: any): CallActions => ({
   initiateCall: async ({ targetUserId, callType }): Promise<{ callId: string }> => {
-    const { sendCallOffer } = useSocketStore.getState();
+    console.log('[CallStore] initiateCall called with:', { targetUserId, callType });
+    
+    // Get the current socket store state
+    const socketStore = useSocketStore.getState();
+    console.log('[CallStore] Socket store state:', { 
+      isConnected: socketStore.isConnected, 
+      socket: !!socketStore.socket 
+    });
+    
+    if (!socketStore.isConnected || !socketStore.socket) {
+      console.error('[CallStore] Cannot initiate call: WebSocket is not connected');
+      throw new Error('WebSocket connection is not established');
+    }
+    
+    // Get the socket instance
+    const { socket } = socketStore;
     let stream: MediaStream | null = null;
     
     try {
@@ -25,11 +40,19 @@ export const createCallActions = (set: any, get: any): CallActions => ({
         video: callType === 'video',
         audio: true,
       };
+      console.log('[CallStore] Requesting media with constraints:', constraints);
       
-      // Get user media stream
-      stream = await navigator.mediaDevices.getUserMedia(constraints);
+      try {
+        // Get user media stream
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        console.log('[CallStore] Successfully acquired media stream');
+      } catch (mediaError) {
+        console.error('[CallStore] Error getting user media:', mediaError);
+        throw new Error('Could not access camera/microphone. Please check your permissions.');
+      }
       
       // Create peer connection
+      console.log('[CallStore] Creating RTCPeerConnection');
       const peerConnection = new RTCPeerConnection({
         iceServers: [
           { urls: 'stun:stun.l.google.com:19302' },
@@ -37,46 +60,71 @@ export const createCallActions = (set: any, get: any): CallActions => ({
         ],
       });
       
+      // Add event listeners for ICE candidates
+      peerConnection.onicecandidate = (event) => {
+        console.log('[CallStore] ICE candidate:', event.candidate);
+      };
+      
+      peerConnection.oniceconnectionstatechange = () => {
+        console.log('[CallStore] ICE connection state:', peerConnection.iceConnectionState);
+      };
+      
       // Add tracks to peer connection
       stream.getTracks().forEach((track) => {
+        console.log(`[CallStore] Adding track to peer connection: ${track.kind}`);
         peerConnection.addTrack(track, stream!);
       });
       
       // Create and set local description
+      console.log('[CallStore] Creating offer');
       const offer = await peerConnection.createOffer({
         offerToReceiveAudio: true,
         offerToReceiveVideo: callType === 'video',
       });
       
+      console.log('[CallStore] Setting local description');
       await peerConnection.setLocalDescription(offer);
       
       // Generate a temporary call ID
       const callId = `${Date.now()}-${targetUserId}`;
+      console.log('[CallStore] Generated call ID:', callId);
       
       // Store call details in the store
-      set({
-        activeCall: {
-          callId,
-          callType,
-          status: 'RINGING',
-          startedAt: new Date().toISOString(),
-          isIncoming: false,
-          peerConnection,
-          localStream: stream,
-          remoteStream: null,
-          otherParty: {
-            userId: targetUserId,
-            username: '',
-            fullName: `User ${targetUserId.slice(0, 6)}`,
-            profilePhotoUrl: '',
-          },
+      const callData = {
+        callId,
+        callType,
+        status: 'RINGING',
+        startedAt: new Date().toISOString(),
+        isIncoming: false,
+        peerConnection,
+        localStream: stream,
+        remoteStream: null,
+        otherParty: {
+          userId: targetUserId,
+          username: '',
+          fullName: `User ${targetUserId.slice(0, 6)}`,
+          profilePhotoUrl: '',
         },
+      };
+      
+      console.log('[CallStore] Updating store with call data');
+      set({
+        activeCall: callData,
         isCallModalOpen: true,
       });
       
       // Send the offer to the other user
-      sendCallOffer(targetUserId, offer, callType);
+      console.log('[CallStore] Sending call offer to peer:', targetUserId);
       
+      // Emit the call offer event
+      socket.emit('call:offer', {
+        to: targetUserId,
+        offer: peerConnection.localDescription,
+        callType,
+        callId
+      });
+      
+      console.log('[CallStore] Call offer sent successfully');
       return { callId };
       
     } catch (error) {
@@ -97,43 +145,56 @@ export const createCallActions = (set: any, get: any): CallActions => ({
     }
   },
   
-  answerCall: (callId: string, answer: RTCSessionDescriptionInit) => {
+  answerCall: async (callId: string, answer: RTCSessionDescriptionInit) => {
+    console.log('[CallStore] answerCall called with:', { callId });
+    
     const { activeCall } = get();
-    if (!activeCall || activeCall.callId !== callId) return;
-
+    if (!activeCall || activeCall.callId !== callId) {
+      console.error('[CallStore] No active call found with ID:', callId);
+      return;
+    }
+    
+    const socketStore = useSocketStore.getState();
+    if (!socketStore.socket) {
+      console.error('[CallStore] Cannot answer call: WebSocket is not connected');
+      throw new Error('WebSocket connection is not established');
+    }
+    
+    const { socket } = socketStore;
     const peerConnection = activeCall.peerConnection;
-    if (!peerConnection) return;
-
-    // Create a native RTCSessionDescription from the answer
-    const sessionDescription = new RTCSessionDescription(answer);
-
-    peerConnection.setRemoteDescription(sessionDescription)
-      .then(() => {
-        set({
-          activeCall: {
-            ...activeCall,
-            status: 'ACTIVE' as const,
-          },
-        });
-      })
-      .catch((error: Error) => {
-        console.error('Error setting remote description:', error);
-        // Use the endCall from the store
-        get().endCall(callId);
-      });
-  },
-  
-  rejectCall: (callId: string) => {
-    const { socket } = useSocketStore.getState();
-    const { activeCall } = get();
+    
+    if (!peerConnection) {
+      console.error('[CallStore] No peer connection found for call:', callId);
+      return;
+    }
     
     try {
-      if (socket?.connected) {
-        socket.emit('call:reject', { callId });
-      }
+      console.log('[CallStore] Setting remote description with answer');
+      // Create a native RTCSessionDescription from the answer
+      const sessionDescription = new RTCSessionDescription(answer);
+      await peerConnection.setRemoteDescription(sessionDescription);
+      
+      // Send the answer back to the caller
+      console.log('[CallStore] Sending answer to caller');
+      socket.emit('call:answer', {
+        to: activeCall.otherParty.userId,
+        callId,
+        answer: peerConnection.localDescription
+      });
+      
+      console.log('[CallStore] Call answered successfully');
+      
+      set({
+        activeCall: {
+          ...activeCall,
+          status: 'ACTIVE' as const,
+        },
+      });
+    } catch (error) {
+      console.error('[CallStore] Error answering call:', error);
       
       // Clean up resources
-      if (activeCall?.localStream) {
+      if (activeCall.localStream) {
         activeCall.localStream.getTracks().forEach((track: MediaStreamTrack) => track.stop());
       }
       
@@ -142,49 +203,65 @@ export const createCallActions = (set: any, get: any): CallActions => ({
         activeCall: null,
         isCallModalOpen: false,
       });
-    } catch (error) {
-      console.error('Error rejecting call:', error);
+      
       throw error;
     }
   },
   
-  endCall: (callId: string) => {
-    const { socket } = useSocketStore.getState();
+  rejectCall: (callId: string) => {
+    console.log('[CallStore] rejectCall called with:', { callId });
+    
     const { activeCall } = get();
+    if (!activeCall || activeCall.callId !== callId) {
+      console.error('[CallStore] No active call found with ID:', callId);
+      return;
+    }
+    
+    const socketStore = useSocketStore.getState();
+    if (socketStore.socket) {
+      console.log('[CallStore] Sending call:reject event');
+      socketStore.socket.emit('call:reject', {
+        callId,
+        to: activeCall.otherParty.userId
+      });
+    } else {
+      console.warn('[CallStore] Socket not available, cannot send call:reject event');
+    }
+    
+    // Clean up resources
+    if (activeCall.localStream) {
+      activeCall.localStream.getTracks().forEach((track: MediaStreamTrack) => track.stop());
+    }
+
+    // Close peer connection if it exists
+    if (activeCall.peerConnection) {
+      console.log('[CallStore] Closing peer connection in rejectCall');
+      activeCall.peerConnection.close();
+    }
+
+    // Reset call state
+    set({
+      activeCall: null,
+      isCallModalOpen: false,
+    });
+  },
+  
+  endCall: async () => {
+    console.log('[CallStore] endCall called');
+    
+    const { activeCall } = get();
+    if (!activeCall) {
+      console.error('[CallStore] No active call found');
+      return;
+    }
     
     try {
-      if (socket?.connected) {
-        socket.emit('call:end', { callId });
-      }
-      
-      // Clean up resources
-      if (activeCall?.localStream) {
-        activeCall.localStream.getTracks().forEach((track: MediaStreamTrack) => {
-          track.stop();
-          activeCall.localStream?.removeTrack(track);
-        });
-      }
-      
-      if (activeCall?.remoteStream) {
-        activeCall.remoteStream.getTracks().forEach((track: MediaStreamTrack) => {
-          track.stop();
-          activeCall.remoteStream?.removeTrack(track);
-        });
-      }
-      
-      if (activeCall?.peerConnection) {
-        // Remove all event listeners before closing
-        activeCall.peerConnection.ontrack = null;
-        activeCall.peerConnection.onicecandidate = null;
-        activeCall.peerConnection.oniceconnectionstatechange = null;
-        activeCall.peerConnection.onsignalingstatechange = null;
-        activeCall.peerConnection.onicegatheringstatechange = null;
-        activeCall.peerConnection.onnegotiationneeded = null;
-        
-        // Close the peer connection
+      // Close peer connection if it exists
+      if (activeCall.peerConnection) {
+        console.log('[CallStore] Closing peer connection in endCall');
         activeCall.peerConnection.close();
       }
-      
+
       // Reset call state
       set({
         activeCall: null,

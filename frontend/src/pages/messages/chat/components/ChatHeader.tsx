@@ -26,11 +26,19 @@ export const ChatHeader = ({
   const { user: _user } = useAuthStore();
 
   const handleCallStart = async (type: 'audio' | 'video') => {
+    console.log('handleCallStart called with type:', type, 'for user:', userId);
+    if (!userId) {
+      console.error('Cannot start call: No user ID provided');
+      return;
+    }
+    
     try {
-      await initiateCall({
+      console.log('Initiating call to user:', userId, 'type:', type);
+      const result = await initiateCall({
         targetUserId: userId,
         callType: type,
       });
+      console.log('Call initiated successfully:', result);
       setIsCallDialogOpen(false);
     } catch (error) {
       console.error('Failed to initiate call:', error);
