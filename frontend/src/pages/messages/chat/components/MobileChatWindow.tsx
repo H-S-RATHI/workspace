@@ -53,12 +53,25 @@ const MobileChatWindow = ({ onBack }: MobileChatWindowProps) => {
     hasMoreMessages = false,
     isFetchingMore = false,
     loadMoreMessages,
+    fetchMessages,
     error: chatError
   } = useChatStore();
   
   const { user: currentUser } = useAuthStore();
   const navigate = useNavigate();
   const currentUserId = currentUser?.userId || '';
+  
+  // Load messages when currentConversation changes
+  useEffect(() => {
+    if (currentConversation?.convoId) {
+      console.log('Mobile - Current conversation changed, loading messages:', currentConversation.convoId);
+      fetchMessages(currentConversation.convoId).catch(error => {
+        console.error('Mobile - Error loading messages:', error);
+      });
+    } else {
+      console.log('Mobile - No conversation selected or missing convoId');
+    }
+  }, [currentConversation?.convoId, fetchMessages]);
   
   // Get the other user's ID from conversation members for direct messages
   const otherUserId = useMemo(() => {

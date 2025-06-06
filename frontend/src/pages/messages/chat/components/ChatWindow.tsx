@@ -198,7 +198,21 @@ const ChatWindow = () => {
   const sendMessage = useChatStore((state) => state.sendMessage);
   const isSending = useChatStore((state) => state.isSending || false);
   const currentUserId = useAuthStore((state) => state.user?.userId || '');
+  const fetchMessages = useChatStore((state) => state.fetchMessages);
+  const loadMoreMessages = useChatStore((state) => state.loadMoreMessages);
   const navigate = useNavigate();
+  
+  // Load messages when currentConversation changes
+  useEffect(() => {
+    if (currentConversation?.convoId) {
+      console.log('Current conversation changed, loading messages:', currentConversation.convoId);
+      fetchMessages(currentConversation.convoId).catch(error => {
+        console.error('Error loading messages:', error);
+      });
+    } else {
+      console.log('No conversation selected or missing convoId');
+    }
+  }, [currentConversation?.convoId, fetchMessages]);
   
   // WebSocket connection is handled by WebSocketProvider
   // No need to access isConnected here as it's managed at the provider level
