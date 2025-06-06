@@ -4,9 +4,12 @@ import { Message } from '@/types/chat';
 import { MessageBubble } from './MessageBubble';
 import { MessageCircle } from 'lucide-react';
 import { formatMessageDate } from './DateHeader';
+import { useChatStore } from '@/store/chatStore';
+import { useAuthStore } from '@/store/authStore';
+import { useEffect, useRef } from 'react';
 
 // Typing indicator component
-const TypingIndicator = () => (
+export const TypingIndicator = () => (
   <div className="flex items-center space-x-1 px-4 py-2">
     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
@@ -14,20 +17,17 @@ const TypingIndicator = () => (
   </div>
 );
 
-interface MessageAreaProps {
-  messages: Message[];
-  isTyping: boolean;
-  currentUserId: string;
-  messagesEndRef: React.RefObject<HTMLDivElement>;
-}
-
-export const MessageArea = ({
-  messages = [],
-  isTyping = false,
-  currentUserId = '',
-  messagesEndRef
-}: MessageAreaProps) => {
+export const MessageArea = () => {
+  const { messages = [] } = useChatStore();
+  const currentUserId = useAuthStore(state => state.user?.userId || '');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const isTyping = false; // TODO: Get typing status from store if needed
   // Group messages by date
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
   const groupedMessages = messages.reduce<Record<string, Message[]>>((acc, message) => {
     if (!message || !message.timestamp) return acc;
     
@@ -86,16 +86,9 @@ export const MessageArea = ({
                   });
                 }
                 
-                // Create a unique key using all available identifiers
-                const keyParts = [
-                  'msg',
-                  msg.messageId || 'no-id',
-                  msg.timestamp || 'no-ts',
-                  msg.senderId || 'no-sender',
-                  `idx-${index}`
-                ].filter(Boolean);
-                
-                const messageKey = keyParts.join('-');
+                // Use messageId as key if available, otherwise fall back to index
+                // This is safe because we're already checking for undefined messages above
+                const messageKey = msg.messageId || `msg-${msg.timestamp}-${msg.senderId}-${index}`;
                 
                 return (
                   <MessageBubble
@@ -108,8 +101,8 @@ export const MessageArea = ({
             </div>
           ))
         )}
-        {isTyping && <TypingIndicator />}
-        <div ref={messagesEndRef} />
+        {isTyping && <TypingIndicator key="typing-indicator" />}
+        <div key="messages-end" ref={messagesEndRef} />
       </AnimatePresence>
     </div>
   );

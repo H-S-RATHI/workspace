@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useChatStore } from '@/store/chatStore';
 import { useAuthStore } from '@/store/authStore';
 import { useSocketStore } from '@/store/socket/store';
@@ -8,11 +8,9 @@ import { ChatInput } from './ChatInput';
 
 const ChatWindow = () => {
   // Memoize store selectors to prevent unnecessary re-renders
-  const { messages = [], isSending, sendMessage } = useChatStore();
+  const { isSending, sendMessage } = useChatStore();
   const { accessToken } = useAuthStore();
   const { connect, disconnect, isConnected } = useSocketStore();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const currentUserId = useAuthStore(state => state.user?.userId || '');
   
   // Only log renders in development
   if (process.env.NODE_ENV === 'development') {
@@ -40,20 +38,13 @@ const ChatWindow = () => {
     };
   }, [accessToken, connect, disconnect]);
 
-  // Auto-scroll to bottom when messages change
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-  
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  // Auto-scroll is now handled in MessageArea component
   
   // Handle sending a message
   const handleSendMessage = useCallback(async (content: string) => {
     try {
       await sendMessage(content);
-      scrollToBottom();
+      // Auto-scroll is handled in MessageArea component
     } catch (error) {
       console.error('Failed to send message:', error);
     }
@@ -64,14 +55,8 @@ const ChatWindow = () => {
       <ChatHeader />
       
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto p-4">
-        <MessageArea 
-          messages={messages} 
-          isTyping={false} 
-          currentUserId={currentUserId}
-          messagesEndRef={messagesEndRef}
-        />
-        <div ref={messagesEndRef} />
+      <div className="flex-1 overflow-y-auto">
+        <MessageArea />
       </div>
       
       {/* Message input */}
