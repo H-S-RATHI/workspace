@@ -25,14 +25,14 @@ const RecentUpdateItem: React.FC<RecentUpdateItemProps> = ({ group, onView }) =>
   const latestStatus = group.statuses[0];
   const hasUnviewed = group.statuses.some((s: any) => !s.viewed);
   const statusCount = group.statuses.length;
-  const userInitials = group?.user?.name
-    ? group.user.name
+  const userInitials = group?.user?.fullName
+    ? group.user.fullName
         .split(' ')
         .map((n: string) => n[0])
         .join('')
         .toUpperCase()
         .substring(0, 2)
-    : 'US'; // Default initials if user or name is not available
+    : 'US'; // Default initials if user or fullName is not available
 
   return (
     <motion.div 
@@ -58,7 +58,7 @@ const RecentUpdateItem: React.FC<RecentUpdateItemProps> = ({ group, onView }) =>
         {/* Status content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between">
-            <h4 className="font-medium text-gray-900 truncate">{group.user.name}</h4>
+            <h4 className="font-medium text-gray-900 truncate">{group.user.fullName || 'User'}</h4>
             <span className="text-xs text-gray-400 whitespace-nowrap ml-2">
               {latestStatus && formatDistanceToNow(new Date(latestStatus.createdAt), { addSuffix: true })}
             </span>
