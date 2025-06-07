@@ -5,6 +5,7 @@ const { v4: uuidv4 } = require('uuid');
 const { db } = require('../config/database');
 const { authenticateToken, optionalAuth } = require('../middleware/auth');
 const { logger } = require('../utils/logger');
+const { createImageVariants } = require('../config/cloudinary');
 
 const router = express.Router();
 
@@ -865,6 +866,454 @@ router.post('/reels/:reelId/view', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to record view',
+    });
+  }
+});
+
+// Share post
+router.post('/posts/:postId/share', [
+  authenticateToken,
+  body('shareType').isIn(['DIRECT', 'STORY', 'EXTERNAL']).withMessage('Valid share type required'),
+  body('platform').optional().isString(),
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: errors.array(),
+      });
+    }
+
+    const { postId } = req.params;
+    const { shareType, platform } = req.body;
+
+    // Check if post exists
+    const post = await db('posts')
+      .where({ postId, isDeleted: false })
+      .first();
+
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        error: 'Post not found',
+      });
+    }
+
+    // Record share
+    await db('post_shares').insert({
+      postId,
+      userId: req.user.userId,
+      shareType,
+      platform: platform || null,
+      createdAt: new Date(),
+    });
+
+    // Record interaction for recommendation algorithm
+    await db('user_interactions').insert({
+      userId: req.user.userId,
+      itemType: 'POST',
+      itemId: postId,
+      interactionType: 'SHARE',
+      createdAt: new Date(),
+    });
+
+    res.json({
+      success: true,
+      message: 'Post shared successfully',
+    });
+
+  } catch (error) {
+    logger.error('Share post error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to share post',
+    });
+  }
+});
+
+// Save/Unsave post
+router.post('/posts/:postId/save', authenticateToken, async (req, res) => {
+  try {
+    const { postId } = req.params;
+
+    // Check if post exists
+    const post = await db('posts')
+      .where({ postId, isDeleted: false })
+      .first();
+
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        error: 'Post not found',
+      });
+    }
+
+    // Check if already saved
+    const existingSave = await db('saved_posts')
+      .where({ postId, userId: req.user.userId })
+      .first();
+
+    if (existingSave) {
+      // Unsave
+      await db('saved_posts')
+        .where({ postId, userId: req.user.userId })
+        .del();
+
+      res.json({
+        success: true,
+        message: 'Post unsaved',
+        isSaved: false,
+      });
+    } else {
+      // Save
+      await db('saved_posts').insert({
+        postId,
+        userId: req.user.userId,
+        savedAt: new Date(),
+      });
+
+      // Record interaction
+      await db('user_interactions').insert({
+        userId: req.user.userId,
+        itemType: 'POST',
+        itemId: postId,
+        interactionType: 'SAVE',
+        createdAt: new Date(),
+      });
+
+      res.json({
+        success: true,
+        message: 'Post saved',
+        isSaved: true,
+      });
+    }
+
+  } catch (error) {
+    logger.error('Save/unsave post error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to save/unsave post',
+    });
+  }
+});
+
+// Share reel
+router.post('/reels/:reelId/share', [
+  authenticateToken,
+  body('shareType').isIn(['DIRECT', 'STORY', 'EXTERNAL']).withMessage('Valid share type required'),
+  body('platform').optional().isString(),
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: errors.array(),
+      });
+    }
+
+    const { reelId } = req.params;
+    const { shareType, platform } = req.body;
+
+    // Check if reel exists
+    const reel = await db('reels')
+      .where({ reelId, isDeleted: false })
+      .first();
+
+    if (!reel) {
+      return res.status(404).json({
+        success: false,
+        error: 'Reel not found',
+      });
+    }
+
+    // Record share
+    await db('reel_shares').insert({
+      reelId,
+      userId: req.user.userId,
+      shareType,
+      platform: platform || null,
+      createdAt: new Date(),
+    });
+
+    // Record interaction
+    await db('user_interactions').insert({
+      userId: req.user.userId,
+      itemType: 'REEL',
+      itemId: reelId,
+      interactionType: 'SHARE',
+      createdAt: new Date(),
+    });
+
+    res.json({
+      success: true,
+      message: 'Reel shared successfully',
+    });
+
+  } catch (error) {
+    logger.error('Share reel error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to share reel',
+    });
+  }
+});
+
+// Save/Unsave reel
+router.post('/reels/:reelId/save', authenticateToken, async (req, res) => {
+  try {
+    const { reelId } = req.params;
+
+    // Check if reel exists
+    const reel = await db('reels')
+      .where({ reelId, isDeleted: false })
+      .first();
+
+    if (!reel) {
+      return res.status(404).json({
+        success: false,
+        error: 'Reel not found',
+      });
+    }
+
+    // Check if already saved
+    const existingSave = await db('saved_reels')
+      .where({ reelId, userId: req.user.userId })
+      .first();
+
+    if (existingSave) {
+      // Unsave
+      await db('saved_reels')
+        .where({ reelId, userId: req.user.userId })
+        .del();
+
+      res.json({
+        success: true,
+        message: 'Reel unsaved',
+        isSaved: false,
+      });
+    } else {
+      // Save
+      await db('saved_reels').insert({
+        reelId,
+        userId: req.user.userId,
+        savedAt: new Date(),
+      });
+
+      // Record interaction
+      await db('user_interactions').insert({
+        userId: req.user.userId,
+        itemType: 'REEL',
+        itemId: reelId,
+        interactionType: 'SAVE',
+        createdAt: new Date(),
+      });
+
+      res.json({
+        success: true,
+        message: 'Reel saved',
+        isSaved: true,
+      });
+    }
+
+  } catch (error) {
+    logger.error('Save/unsave reel error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to save/unsave reel',
+    });
+  }
+});
+
+// Get user's saved posts
+router.get('/saved/posts', authenticateToken, async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = (page - 1) * limit;
+
+    const savedPosts = await db('saved_posts')
+      .join('posts', 'saved_posts.postId', 'posts.postId')
+      .join('users', 'posts.userId', 'users.userId')
+      .where('saved_posts.userId', req.user.userId)
+      .where('posts.isDeleted', false)
+      .where('users.isDeleted', false)
+      .select(
+        'posts.postId',
+        'posts.userId',
+        'posts.postType',
+        'posts.caption',
+        'posts.mediaUrls',
+        'posts.hashtags',
+        'posts.location',
+        'posts.createdAt',
+        'users.username',
+        'users.fullName',
+        'users.profilePhotoUrl',
+        'saved_posts.savedAt'
+      )
+      .orderBy('saved_posts.savedAt', 'desc')
+      .limit(limit)
+      .offset(offset);
+
+    // Get engagement data for each post
+    const postsWithEngagement = await Promise.all(
+      savedPosts.map(async (post) => {
+        const [likesCount, commentsCount] = await Promise.all([
+          db('post_likes').where({ postId: post.postId }).count('* as count').first(),
+          db('post_comments').where({ postId: post.postId }).count('* as count').first(),
+        ]);
+
+        const userLike = await db('post_likes')
+          .where({ postId: post.postId, userId: req.user.userId })
+          .first();
+
+        return {
+          ...post,
+          mediaUrls: post.mediaUrls ? JSON.parse(post.mediaUrls) : [],
+          hashtags: post.hashtags ? JSON.parse(post.hashtags) : [],
+          likesCount: parseInt(likesCount.count),
+          commentsCount: parseInt(commentsCount.count),
+          isLiked: !!userLike,
+          isSaved: true,
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      posts: postsWithEngagement,
+      pagination: {
+        page,
+        limit,
+        hasMore: savedPosts.length === limit,
+      },
+    });
+
+  } catch (error) {
+    logger.error('Get saved posts error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get saved posts',
+    });
+  }
+});
+
+// Get content categories
+router.get('/categories', async (req, res) => {
+  try {
+    const categories = await db('content_categories')
+      .where('isActive', true)
+      .orderBy('sortOrder', 'asc')
+      .select('categoryId', 'name', 'displayName', 'description', 'iconUrl', 'color');
+
+    res.json({
+      success: true,
+      categories,
+    });
+
+  } catch (error) {
+    logger.error('Get categories error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get categories',
+    });
+  }
+});
+
+// Get posts by category
+router.get('/categories/:categoryId/posts', optionalAuth, async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = (page - 1) * limit;
+
+    // Check if category exists
+    const category = await db('content_categories')
+      .where({ categoryId, isActive: true })
+      .first();
+
+    if (!category) {
+      return res.status(404).json({
+        success: false,
+        error: 'Category not found',
+      });
+    }
+
+    const posts = await db('posts')
+      .join('post_categories', 'posts.postId', 'post_categories.postId')
+      .join('users', 'posts.userId', 'users.userId')
+      .where('post_categories.categoryId', categoryId)
+      .where('posts.isDeleted', false)
+      .where('users.isDeleted', false)
+      .select(
+        'posts.postId',
+        'posts.userId',
+        'posts.postType',
+        'posts.caption',
+        'posts.mediaUrls',
+        'posts.hashtags',
+        'posts.location',
+        'posts.createdAt',
+        'users.username',
+        'users.fullName',
+        'users.profilePhotoUrl'
+      )
+      .orderBy('posts.createdAt', 'desc')
+      .limit(limit)
+      .offset(offset);
+
+    // Get engagement data for each post
+    const postsWithEngagement = await Promise.all(
+      posts.map(async (post) => {
+        const [likesCount, commentsCount] = await Promise.all([
+          db('post_likes').where({ postId: post.postId }).count('* as count').first(),
+          db('post_comments').where({ postId: post.postId }).count('* as count').first(),
+        ]);
+
+        let isLiked = false;
+        let isSaved = false;
+        if (req.user) {
+          const [userLike, userSave] = await Promise.all([
+            db('post_likes').where({ postId: post.postId, userId: req.user.userId }).first(),
+            db('saved_posts').where({ postId: post.postId, userId: req.user.userId }).first(),
+          ]);
+          isLiked = !!userLike;
+          isSaved = !!userSave;
+        }
+
+        return {
+          ...post,
+          mediaUrls: post.mediaUrls ? JSON.parse(post.mediaUrls) : [],
+          hashtags: post.hashtags ? JSON.parse(post.hashtags) : [],
+          likesCount: parseInt(likesCount.count),
+          commentsCount: parseInt(commentsCount.count),
+          isLiked,
+          isSaved,
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      category,
+      posts: postsWithEngagement,
+      pagination: {
+        page,
+        limit,
+        hasMore: posts.length === limit,
+      },
+    });
+
+  } catch (error) {
+    logger.error('Get category posts error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get category posts',
     });
   }
 });
