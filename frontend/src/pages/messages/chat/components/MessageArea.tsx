@@ -6,7 +6,7 @@ import { MessageCircle } from 'lucide-react';
 import { formatMessageDate } from './DateHeader';
 import { useChatStore } from '@/store/chatStore';
 import { useAuthStore } from '@/store/authStore';
-import { useEffect, useRef } from 'react';
+import { useRef, useEffect } from 'react';
 
 // Typing indicator component
 export const TypingIndicator = () => (
@@ -23,10 +23,14 @@ export const MessageArea = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isTyping = false; // TODO: Get typing status from store if needed
   // Group messages by date
-  // Auto-scroll to bottom when messages change
+  // Scroll to bottom on initial load only
+  const hasScrolled = useRef(false);
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (messages.length > 0 && !hasScrolled.current) {
+      messagesEndRef.current?.scrollIntoView();
+      hasScrolled.current = true;
+    }
+  }, [messages.length]);
 
   const groupedMessages = messages.reduce<Record<string, Message[]>>((acc, message) => {
     if (!message || !message.timestamp) return acc;

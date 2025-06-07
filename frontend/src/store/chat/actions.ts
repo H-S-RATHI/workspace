@@ -108,11 +108,15 @@ export const createConversationActions = (
       // Find the conversation in the list
       const conversation = state.conversations.find(c => c.convoId === conversationId);
       if (conversation) {
+        // First, try to load messages from localStorage
+        const storedMessages = getStoredMessages(conversationId);
+        
         set({ 
           currentConversation: conversation,
-          messages: [], // Clear existing messages when switching conversations
+          messages: storedMessages, // Load messages from localStorage
           currentPage: 1,
-          hasMoreMessages: true
+          hasMoreMessages: true,
+          isLoading: false
         });
         
         // Join the conversation room for real-time updates
@@ -121,15 +125,31 @@ export const createConversationActions = (
           socket.emit('join_conversation', { conversationId });
         }
         
-        // Load initial messages (newest first)
-        await get().loadMoreMessages();
+        // Always fetch fresh messages in the background
+        try {
+          const response = await chatAPI.getMessages(conversationId, 1, 20);
+          if (response.success && response.messages.length > 0) {
+            // Only update if we got new messages
+            set(() => ({
+              messages: response.messages,
+              currentPage: 1,
+              hasMoreMessages: response.messages.length === 20
+            }));
+            // Save the fresh messages to localStorage
+            saveMessages(conversationId, response.messages);
+          }
+        } catch (error) {
+          console.error('Error fetching fresh messages:', error);
+          // Don't show error to user, we already have cached messages
+        }
       }
     } catch (error: any) {
-      set({ 
+      console.error('Error in selectConversation:', error);
+      set({
         error: error.message || 'Failed to load conversation',
-        hasMoreMessages: false
+        hasMoreMessages: false,
+        isLoading: false
       });
-      console.error('Error selecting conversation:', error);
     } finally {
       set({ isLoading: false });
     }
