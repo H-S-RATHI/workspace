@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Search, Plus } from 'lucide-react';
 import debounce from 'lodash.debounce';
+import { toast } from 'react-hot-toast';
 import { useChatStore } from '../../../../store/chatStore';
 import { useAuthStore } from '@/store/authStore';
 
@@ -124,20 +125,41 @@ export const ConversationList = () => {
     debouncedSearch(searchQuery);
   };
 
-  // Start a new conversation
+  // Check if a conversation already exists with the given user
+  const findExistingConversation = (userId: string) => {
+    return conversations.find(conv => 
+      !conv.isGroup && 
+      conv.members?.some(member => member.userId === userId)
+    );
+  };
+
+  // Start a new conversation or navigate to existing one
   const startNewChat = async (userId: string) => {
     try {
-      const conversation = await createConversation({
-        participantIds: [userId],
-        isGroup: false
-      })
+      // Check if conversation already exists
+      const existingConv = findExistingConversation(userId);
       
-      if (conversation) {
-        setSearchQuery('')
-        setSearchResults([])
+      if (existingConv) {
+        // If conversation exists, select it
+        selectConversation(existingConv.convoId);
+      } else {
+        // Otherwise, create a new conversation
+        const conversation = await createConversation({
+          participantIds: [userId],
+          isGroup: false
+        });
+        
+        if (conversation) {
+          selectConversation(conversation.convoId);
+        }
       }
+      
+      // Clear search
+      setSearchQuery('');
+      setSearchResults([]);
     } catch (error) {
-      console.error('Error starting new chat:', error)
+      console.error('Error starting new chat:', error);
+      toast.error('Failed to start chat. Please try again.');
     }
   }
 
