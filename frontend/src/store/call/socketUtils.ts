@@ -23,37 +23,68 @@ export const validateSocketConnection = (useSocketStore: any): void => {
     
     try {
       const socket = useSocketStore.getState().socket;
-      if (!socket || !socket.connected) {
-        throw new Error('Socket not connected');
+      if (!socket) {
+        throw new Error('Socket not initialized');
       }
       
-      // Add a timeout to the call offer
-      const timeout = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Call offer timeout')), 10000)
-      );
+      if (!socket.connected) {
+        console.log('[SocketUtils] Socket not connected, attempting to connect...');
+        await new Promise<void>((resolve, reject) => {
+          const onConnect = () => {
+            socket.off('connect', onConnect);
+            resolve();
+          };
+          
+          const onError = (error: any) => {
+            socket.off('connect_error', onError);
+            reject(new Error(`Socket connection error: ${error?.message || 'Unknown error'}`));
+          };
+          
+          socket.once('connect', onConnect);
+          socket.once('connect_error', onError);
+          
+          // If socket is already connecting, this will be a no-op
+          socket.connect();
+        });
+      }
       
-      // Race the socket emit against the timeout
-      await Promise.race([
-        new Promise<void>((resolve, reject) => {
-          socket.emit('call:offer', {
+      console.log('[SocketUtils] Socket connected, sending call offer...');
+      
+      const response = await new Promise<void>((resolve, reject) => {
+        // Set a timeout for the entire operation
+        const timeout = setTimeout(() => {
+          reject(new Error('Call offer timeout'));
+        }, 15000); // 15 seconds timeout
+        
+        try {
+          // Use the event name from SOCKET_EVENTS
+          socket.emit('call_offer', {
             targetUserId,
             offer,
             callType,
-          }, (response: { success: boolean }) => {
-            if (response.success) {
+          }, (response: { success: boolean; error?: string }) => {
+            clearTimeout(timeout);
+            
+            if (response?.success) {
+              console.log('[SocketUtils] Call offer sent successfully');
               resolve();
             } else {
-              reject(new Error('Failed to send call offer'));
+              const errorMsg = response?.error || 'Failed to send call offer';
+              console.error('[SocketUtils] Call offer failed:', errorMsg);
+              reject(new Error(errorMsg));
             }
           });
-        }),
-        timeout
-      ]);
+        } catch (error) {
+          clearTimeout(timeout);
+          console.error('[SocketUtils] Error in socket.emit:', error);
+          reject(error);
+        }
+      });
       
-      console.log('[SocketUtils] Call offer sent successfully');
+      return response;
     } catch (error) {
-      console.error('[SocketUtils] Error sending call offer:', error);
-      throw error;
+      console.error('[SocketUtils] Error in sendCallOffer:', error);
+      throw error; // Re-throw to be handled by the caller
     }
   };
   export const sendCallAnswer = (
