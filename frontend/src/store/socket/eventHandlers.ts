@@ -16,6 +16,7 @@ import type {
 import { SOCKET_EVENTS } from './constants'
 import { useChatStore } from '../chatStore'
 import { useAuthStore } from '../authStore'
+import { saveMessages } from '../../utils/storage'
 // Connection Event Handlers
 export const setupConnectionHandlers = (
   socket: Socket, 
@@ -98,11 +99,24 @@ export const setupMessageHandlers = (socket: Socket) => {
           return { conversations: updatedConversations };
         }
         
+        // Save the updated messages to localStorage
+        const updatedMessages = [...state.messages, message];
+        saveMessages(message.convoId, updatedMessages);
+        
         return {
-          messages: [...state.messages, message],
+          messages: updatedMessages,
           conversations: updatedConversations
         };
       } else {
+        // For messages in other conversations, update the last message in localStorage
+        const conversation = updatedConversations.find(c => c.convoId === message.convoId);
+        if (conversation) {
+          const storedMessages = state.messages.filter(m => m.convoId === message.convoId);
+          if (storedMessages.length > 0) {
+            saveMessages(message.convoId, [...storedMessages, message]);
+          }
+        }
+        
         console.log('Message received for different conversation:', message.convoId);
         return { conversations: updatedConversations };
       }

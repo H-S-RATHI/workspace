@@ -1,12 +1,14 @@
 import { chatAPI, usersAPI } from '../../services/api'
 import { useSocketStore } from '../socketStore'
 import { useAuthStore } from '../authStore'
+import { getStoredMessages, saveMessages } from '../../utils/storage'
 import type { 
   ChatStore, 
   CreateConversationData, 
   Message
 } from './types'
 import { INITIAL_CHAT_STATE, PAGINATION_CONFIG } from './constants'
+
 // Conversation Management Actions
 export const createConversationActions = (
   set: (partial: Partial<ChatStore> | ((state: ChatStore) => Partial<ChatStore>)) => void,
@@ -182,6 +184,7 @@ export const createConversationActions = (
     }
   }
 })
+
 // Message Management Actions
 export const createMessageActions = (
   set: (partial: Partial<ChatStore> | ((state: ChatStore) => Partial<ChatStore>)) => void,
@@ -192,7 +195,7 @@ export const createMessageActions = (
     content: string, 
     messageType: 'TEXT' | 'IMAGE' | 'VOICE' | 'LOCATION' | 'PAYMENT' = 'TEXT'
   ) => {
-    const { currentConversation } = get()
+    const { currentConversation, messages } = get()
     if (!currentConversation) return
     
     set({ isSending: true, error: null })
@@ -214,7 +217,7 @@ export const createMessageActions = (
       msgType: messageType as any,
       contentText: content,
       timestamp: new Date().toISOString(),
-      status: 'SENT' as const,
+      status: 'SENDING' as const,
       // Add any other required fields with default values
       contentUrl: '',
       paymentTxnId: undefined,
@@ -224,12 +227,16 @@ export const createMessageActions = (
     
     try {
       const socket = useSocketStore.getState().socket
-      // Message data will be sent via socket
-      // The socket.emit call below uses content and messageType directly
       
-      // Add the temp message to the UI
+      // Create updated messages array with the new temp message
+      const updatedMessages = [...messages, tempMessage];
+      
+      // Save to localStorage immediately for instant feedback
+      saveMessages(currentConversation.convoId, updatedMessages);
+      
+      // Update the UI with the temp message
       set(state => ({
-        messages: [...state.messages, tempMessage],
+        messages: updatedMessages,
         conversations: state.conversations.map(conv => 
           conv.convoId === currentConversation.convoId 
             ? { ...conv, lastMessage: tempMessage, lastMessageAt: tempMessage.timestamp }
@@ -247,6 +254,10 @@ export const createMessageActions = (
           messageType
         })
       }
+      
+      // The actual message update will happen when we receive the message from the server
+      // via WebSocket, which will update both the UI and localStorage
+      
     } catch (error: unknown) {
       const errorMessage = error instanceof Error 
         ? error.message 
@@ -254,10 +265,19 @@ export const createMessageActions = (
           ? error 
           : 'Failed to send message'
       
-      set({ error: errorMessage })
-      console.error('Error sending message:', error)
+      // Update the message status to failed
+      set(state => ({
+        error: errorMessage,
+        messages: state.messages.map(msg => 
+          msg.id === tempMessage.id 
+            ? { ...msg, status: 'FAILED' as const }
+            : msg
+        )
+      }));
+      
+      console.error('Error sending message:', error);
     } finally {
-      set({ isSending: false })
+      set({ isSending: false });
     }
   },
   // Load more messages for the current conversation (pagination)
@@ -268,6 +288,20 @@ export const createMessageActions = (
     set({ isLoading: true, error: null });
     
     try {
+      // First try to load from localStorage for instant display
+      const storedMessages = getStoredMessages(conversationId);
+      
+      // If we have stored messages, show them immediately
+      if (storedMessages.length > 0) {
+        set({
+          messages: storedMessages,
+          currentPage: 1,
+          hasMoreMessages: true, // Assume there might be more messages
+          isLoading: false
+        });
+      }
+      
+      // Then fetch fresh messages from the server
       const response = await chatAPI.getMessages(
         conversationId,
         1, // First page
@@ -275,22 +309,48 @@ export const createMessageActions = (
       );
       
       if (response?.success) {
-        set({
-          messages: response.messages || [],
-          currentPage: 1,
-          hasMoreMessages: (response.messages?.length || 0) >= PAGINATION_CONFIG.DEFAULT_PAGE_SIZE,
-          isLoading: false,
-          error: null
-        });
+        // If we have fresh messages, update the store and localStorage
+        if (response.messages?.length > 0) {
+          saveMessages(conversationId, response.messages);
+          
+          set({
+            messages: response.messages,
+            currentPage: 1,
+            hasMoreMessages: response.messages.length >= PAGINATION_CONFIG.DEFAULT_PAGE_SIZE,
+            isLoading: false,
+            error: null
+          });
+        } else if (storedMessages.length === 0) {
+          // No messages from server and none in storage
+          set({
+            messages: [],
+            currentPage: 1,
+            hasMoreMessages: false,
+            isLoading: false
+          });
+        }
       } else {
         throw new Error('Failed to fetch messages');
       }
     } catch (error) {
       console.error('Error fetching messages:', error);
-      set({
-        isLoading: false,
-        error: error instanceof Error ? error.message : 'Failed to fetch messages'
-      });
+      
+      // If we have stored messages, use them even if the fetch failed
+      const storedMessages = getStoredMessages(conversationId);
+      if (storedMessages.length > 0) {
+        set({
+          messages: storedMessages,
+          currentPage: 1,
+          hasMoreMessages: true,
+          isLoading: false,
+          error: 'Using cached messages. Could not connect to server.'
+        });
+      } else {
+        set({
+          isLoading: false,
+          error: error instanceof Error ? error.message : 'Failed to fetch messages'
+        });
+      }
     }
   },
   
@@ -308,10 +368,16 @@ export const createMessageActions = (
       )
       
       if (response?.success) {
+        const newMessages = response.messages || [];
+        const updatedMessages = [...messages, ...newMessages];
+        
+        // Save the updated messages to localStorage
+        saveMessages(currentConversation.convoId, updatedMessages);
+        
         set(state => ({
-          messages: [...state.messages, ...(response.messages || [])],
+          messages: updatedMessages,
           currentPage: state.currentPage + 1,
-          hasMoreMessages: (response.messages?.length || 0) >= PAGINATION_CONFIG.DEFAULT_PAGE_SIZE,
+          hasMoreMessages: newMessages.length >= PAGINATION_CONFIG.DEFAULT_PAGE_SIZE,
           isFetchingMore: false
         }));
       } else {
@@ -326,6 +392,7 @@ export const createMessageActions = (
     }
   }
 })
+
 // Search Actions
 export const createSearchActions = () => ({
   // Search for users to start a new chat

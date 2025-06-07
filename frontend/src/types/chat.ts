@@ -12,7 +12,7 @@ export interface Message {
   latitude?: number
   paymentTxnId?: string
   timestamp: string
-  status: 'SENT' | 'DELIVERED' | 'READ'
+  status: 'SENDING' | 'SENT' | 'DELIVERED' | 'READ' | 'FAILED'
 }
 
 export interface Conversation {
