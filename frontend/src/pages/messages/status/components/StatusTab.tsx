@@ -7,8 +7,6 @@ import StatusCreator from './StatusCreator';
 import MyStatusCard from './MyStatusCard';
 import RecentUpdatesList from './RecentUpdatesList';
 import EmptyStatusPlaceholder from './EmptyStatusPlaceholder';
-import { Button } from '../../../../components/ui/Button';
-import { RefreshCw, Search, Plus, Sparkles } from 'lucide-react';
 
 const StatusTab = () => {
   interface Status {
@@ -222,71 +220,23 @@ const StatusTab = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30">
+    <div className="flex flex-col h-full bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30">
       {/* Animated Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
       </div>
 
-      {/* Header */}
-      <header className="sticky top-0 z-10 backdrop-blur-xl bg-white/80 border-b border-white/50 shadow-lg">
-        <div className="max-w-6xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="relative">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-                  <Sparkles className="w-5 h-5 text-white" />
-                </div>
-                <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-pink-400 to-red-400 rounded-full animate-bounce"></div>
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">Status</h1>
-                <p className="text-sm text-gray-500">Share your moments</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-3">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="w-10 h-10 rounded-xl hover:bg-white/60 backdrop-blur-sm border border-white/30 shadow-sm transition-all duration-300 hover:scale-105"
-                onClick={handleRefresh}
-                disabled={isLoading}
-              >
-                <RefreshCw className={`h-4 w-4 text-gray-600 ${isLoading ? 'animate-spin' : ''}`} />
-              </Button>
-              
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="w-10 h-10 rounded-xl hover:bg-white/60 backdrop-blur-sm border border-white/30 shadow-sm transition-all duration-300 hover:scale-105"
-              >
-                <Search className="h-4 w-4 text-gray-600" />
-              </Button>
-              
-              <Button 
-                onClick={() => setShowStatusCreator(true)}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl px-6 py-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Create
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto">
-        <div className="max-w-6xl mx-auto p-6">
+      <main className="flex-1 overflow-y-auto h-[calc(100vh-64px)] pb-4">
+        <div className="max-w-6xl mx-auto p-4 sm:p-6">
           <AnimatePresence mode="wait">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.4 }}
-              className="space-y-8 pb-8"
+              className="space-y-6 pb-6"
             >
               <MyStatusCard
                 myStatuses={myStatuses}

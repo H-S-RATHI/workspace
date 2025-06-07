@@ -36,7 +36,7 @@ const ChatWindow = () => {
 
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-gray-900 rounded-lg shadow-lg overflow-hidden">
+    <div className="flex flex-col w-full h-full bg-white dark:bg-gray-900 rounded-lg shadow-lg overflow-hidden">
       <ChatHeader />
       
       {/* Messages area */}

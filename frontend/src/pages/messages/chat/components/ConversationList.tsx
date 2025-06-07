@@ -143,15 +143,7 @@ export const ConversationList = () => {
     <div className="w-80 border-r border-gray-200 bg-white flex flex-col shadow-sm h-full">
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold">Messages</h2>
-          <button 
-            className="p-2 hover:bg-white/20 rounded-full transition-colors"
-            aria-label="New conversation"
-          >
-            <Plus className="w-5 h-5" />
-          </button>
-        </div>
+
         
         {/* Search bar */}
         <div className="relative">

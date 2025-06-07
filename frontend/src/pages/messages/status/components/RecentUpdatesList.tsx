@@ -4,6 +4,7 @@ import RecentUpdateItem from './RecentUpdateItem';
 import { motion } from 'framer-motion';
 import { Skeleton } from '../../../../components/ui/Skeleton';
 import { Users, Sparkles } from 'lucide-react';
+import EmptyStatusPlaceholder from './EmptyStatusPlaceholder';
 
 interface RecentUpdatesListProps {
   groupedStatuses: any[];
@@ -36,21 +37,7 @@ const RecentUpdatesList: React.FC<RecentUpdatesListProps> = ({ groupedStatuses, 
       className="relative bg-gradient-to-br from-white/60 to-white/30 backdrop-blur-xl rounded-3xl border border-white/40 shadow-2xl"
     >
       <div className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center shadow-lg">
-              <Users className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h3 className="font-bold text-xl bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">Recent Updates</h3>
-              <p className="text-sm text-gray-500">See what your friends are up to</p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-2 text-sm text-gray-500 bg-white/60 px-3 py-1 rounded-full">
-            <Sparkles className="w-4 h-4" />
-            <span>{groupedStatuses.length} friends</span>
-          </div>
-        </div>
+       
         
         <div className="space-y-3">
           {isLoading ? (
@@ -83,13 +70,9 @@ const RecentUpdatesList: React.FC<RecentUpdatesListProps> = ({ groupedStatuses, 
             </motion.div>
           ) : (
             <div className="text-center py-12">
-              <div className="w-20 h-20 mx-auto mb-4 rounded-3xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                <Users className="h-8 w-8 text-gray-400" />
-              </div>
-              <h4 className="text-lg font-semibold text-gray-900 mb-2">No Updates Yet</h4>
-              <p className="text-gray-500 text-sm max-w-sm mx-auto">
-                When your friends share their moments, you'll see them here. Start by creating your own status!
-              </p>
+            <EmptyStatusPlaceholder onAddStatus={function (): void {
+                    throw new Error('Function not implemented.');
+                  } } />
             </div>
           )}
         </div>
