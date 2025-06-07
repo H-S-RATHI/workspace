@@ -58,26 +58,25 @@ export interface SocketActions {
   endCall: (callId: string) => void
   sendIceCandidate: (targetUserId: string, callId: string, candidate: RTCIceCandidate | null) => void
 }
-export type SocketStore = {
+export interface SocketStore {
   socket: Socket | null
   isConnected: boolean
   onlineUsers: string[]
   typingUsers: Record<string, string[]> 
-  connect: () => void
+  connect: () => Promise<void>
   disconnect: () => void
   joinConversation: (conversationId: string) => void
   leaveConversation: (conversationId: string) => void
   sendMessage: (conversationId: string, message: string, messageType?: string) => void
   startTyping: (conversationId: string) => void
   stopTyping: (conversationId: string) => void
-  sendCallOffer: (targetUserId: string, offer: any, callType: 'video' | 'audio') => void
+  sendCallOffer: (targetUserId: string, offer: any, callType: 'video' | 'audio') => Promise<void>
   answerCall: (callId: string, answer: any) => void
   rejectCall: (callId: string) => void
   endCall: (callId: string) => void
   sendIceCandidate: (targetUserId: string, callId: string, candidate: RTCIceCandidate | null) => void
   emit: <T = any>(event: string, data: T) => void
 }
-import type { Socket } from 'socket.io-client';
 // Define action types for better type safety
 export type SetState = (partial: Partial<SocketStore> | ((state: SocketStore) => Partial<SocketStore>)) => void;
 export type GetState = () => SocketStore;
@@ -94,14 +93,6 @@ export interface ActionCreators {
   createConversationActions: ActionCreator;
   createMessageActions: ActionCreator;
   createCallActions: ActionCreator;
-}
-// Socket store interface (assuming this exists in your store)
-export interface SocketStore {
-  socket: Socket | null;
-  isConnected: boolean;
-  onlineUsers: any[];
-  typingUsers: Record<string, any>;
-  // Add other socket store properties as needed
 }
 // Re-export Message type for convenience
 export type { Message }
