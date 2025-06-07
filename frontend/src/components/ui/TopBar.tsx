@@ -179,53 +179,44 @@ const TopBar = ({ currentTab, isMobile }: TopBarProps) => {
   }
 
   // Desktop Layout - Completely Redesigned
-  return (
-    <div className="relative">
-      {/* Top Global Bar */}
-
-      {/* Sub-tabs with Modern Design */}
-      <div className="px-6 pb-4">
-        <div className="flex space-x-2 bg-slate-100/80 backdrop-blur-sm rounded-2xl p-2">
-          {currentSubTabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeSubTab === tab.id;
-            
-            return (
-              <motion.button
-                key={tab.id}
-                onClick={() => navigate(tab.path)}
-                className="relative flex-1"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-              >
-                <div className={`flex items-center justify-center space-x-3 px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-300 ${
-                  isActive 
-                    ? `bg-white ${colors.activeText} shadow-lg ${colors.glowColor}` 
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-                }`}>
-                  <Icon className="w-5 h-5" />
-                  <span>{tab.label}</span>
-                </div>
-
-                {/* Active background with gradient */}
-                {isActive && (
-                  <motion.div
-                    layoutId="desktop-sub-indicator"
-                    className="absolute inset-0 bg-white rounded-xl shadow-lg"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ type: 'spring', bounce: 0.2, duration: 0.4 }}
-                    style={{ zIndex: -1 }}
-                  />
-                )}
-              </motion.button>
-            );
-          })}
-        </div>
+ // Desktop layout
+ return (
+  <div className="px-4 py-2 bg-white/80 backdrop-blur-sm border-b border-gray-100">
+    <div className="flex items-center justify-center max-w-4xl mx-auto">
+      <div className="flex space-x-1 bg-gray-50 rounded-xl p-1">
+        {currentSubTabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeSubTab === tab.id;
+          
+          return (
+            <button
+              key={tab.id}
+              onClick={() => navigate(tab.path)}
+              className={`relative px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                isActive
+                  ? 'text-white bg-gradient-to-r from-blue-500 to-indigo-600 shadow-sm'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <Icon className="w-4 h-4" />
+                <span>{tab.label}</span>
+              </div>
+              {isActive && (
+                <motion.div
+                  layoutId="desktop-tab-indicator"
+                  className="absolute -bottom-1 left-1/2 w-4 h-0.5 -translate-x-1/2 bg-white rounded-full"
+                  transition={{ type: 'spring', bounce: 0.3, duration: 0.4 }}
+                />
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
-  );
+  </div>
+);
 };
+
 
 export default TopBar;

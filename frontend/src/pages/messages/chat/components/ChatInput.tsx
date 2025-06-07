@@ -93,8 +93,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         </button>
 
         <div className="relative flex-1">
-          <textarea
-            ref={textareaRef}
+          <input
             value={message}
             onChange={(e) => handleMessageChange(e.target.value)}
             onKeyDown={(e) => {
@@ -105,7 +104,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             }}
             placeholder="Type a message..."
             className="w-full min-h-[44px] max-h-40 px-4 py-3 pr-12 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all resize-none"
-            rows={1}
+         
             aria-label="Message input"
           />
           
