@@ -1,6 +1,6 @@
 import { useMemo, useRef, useEffect, useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Phone, Video, MoreVertical } from 'lucide-react';
+import { ArrowLeft, Phone, Video, MoreVertical, PhoneOff } from 'lucide-react';
 import { useChatStore } from '../../../../store/chat';
 import { useAuthStore } from '../../../../store/auth';
 import { MessageBubble } from './MessageBubble';
@@ -8,6 +8,7 @@ import { format, parseISO, isToday, isYesterday } from 'date-fns';
 import type { Message } from '../../../../types/chat';
 import { useSocketStore } from '@/store/socket/store';
 import { useCallStore } from '@/store/call/store';
+import { CallDialog } from '../../calls/components/CallDialog';
 
 // Simple DateHeader component
 type DateHeaderProps = {
@@ -212,22 +213,12 @@ const MobileChatWindow = ({ onBack }: MobileChatWindowProps) => {
     }, {});
   }, [messages]);
 
-  // Typing indicator handler (placeholder - implement with socket.io)
-  const handleTyping = useCallback(() => {
-    if (!currentConversation) return;
-    
-    // Clear any existing timeout
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
+
+
     
     // You can add socket.emit('typing', ...) here if needed
     
-    // Set timeout to stop typing after 2 seconds of inactivity
-    typingTimeoutRef.current = setTimeout(() => {
-      // You can add socket.emit('stop_typing', ...) here if needed
-    }, 2000);
-  }, [currentConversation]);
+   
 
   // Handle sending a message
   const handleSendMessage = useCallback(async (e: React.FormEvent) => {

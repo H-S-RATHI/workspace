@@ -167,7 +167,7 @@ export const ConversationList = () => {
   return (
     <div className="w-80 border-r border-gray-200 bg-white flex flex-col shadow-sm h-full">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4">
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-black p-4">
 
         
         {/* Search bar */}

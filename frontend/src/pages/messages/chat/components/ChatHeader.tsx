@@ -189,11 +189,7 @@ export const ChatHeader = ({ className = '' }: ChatHeaderProps) => {
       <div className="flex items-center space-x-4">
         <div className="flex items-center space-x-2">
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              openCallDialog('audio');
-            }}
+
             disabled={!currentConversation || !socket || isCallInitiating}
             className={cn(
               'p-2 rounded-full transition-all',
@@ -208,11 +204,7 @@ export const ChatHeader = ({ className = '' }: ChatHeaderProps) => {
             <Phone className="w-5 h-5" />
           </button>
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              openCallDialog('video');
-            }}
+
             disabled={!currentConversation || !socket || isCallInitiating}
             className={cn(
               'p-2 rounded-full transition-all',
