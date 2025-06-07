@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/Button';
 import { Phone, Video } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import type { CallType } from '@/store/call/types';
 import { VoiceCallDialog } from './VoiceCallDialog';
 import { VideoCallDialog } from './VideoCallDialog';
 import { useCallStore } from '@/store/call/store';
@@ -24,14 +25,15 @@ export function CallDialog({
   recipientAvatar,
   callType: initialCallType 
 }: CallDialogProps) {
-  const [callType, setCallType] = useState<'audio' | 'video' | null>(initialCallType || null);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isSpeakerOn, setIsSpeakerOn] = useState(true);
-  const [isVideoOn, setIsVideoOn] = useState(initialCallType === 'video');
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [callType, setCallType] = useState<CallType | null>(initialCallType || null);
   const [callDuration, setCallDuration] = useState(0);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isVideoOn, setIsVideoOn] = useState(true);
+  const [isSpeakerOn, setIsSpeakerOn] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const [timer, setTimer] = useState<NodeJS.Timeout | null>(null);
   
   const { activeCall, endCall } = useCallStore();
   
@@ -44,17 +46,41 @@ export function CallDialog({
   }, [initialCallType]);
 
   const endCallHandler = useCallback(() => {
-    // Clean up streams
+    console.log('[CallDialog][endCallHandler] Ending call and cleaning up');
+    
+    // Stop the call timer
+    if (timer) {
+      clearInterval(timer);
+      setTimer(null);
+    }
+    
+    // Clean up media streams
     if (localStream) {
-      localStream.getTracks().forEach(track => track.stop());
+      console.log('[CallDialog][endCallHandler] Stopping local stream tracks');
+      localStream.getTracks().forEach(track => {
+        try {
+          track.stop();
+        } catch (error) {
+          console.error('[CallDialog][endCallHandler] Error stopping local track:', error);
+        }
+      });
       setLocalStream(null);
     }
+    
     if (remoteStream) {
-      remoteStream.getTracks().forEach(track => track.stop());
+      console.log('[CallDialog][endCallHandler] Stopping remote stream tracks');
+      remoteStream.getTracks().forEach(track => {
+        try {
+          track.stop();
+        } catch (error) {
+          console.error('[CallDialog][endCallHandler] Error stopping remote track:', error);
+        }
+      });
       setRemoteStream(null);
     }
     
     // Reset state
+    console.log('[CallDialog][endCallHandler] Resetting call state');
     setCallType(null);
     setCallDuration(0);
     setIsMuted(false);
@@ -67,8 +93,10 @@ export function CallDialog({
       endCall(activeCall.callId);
     }
     
+    // Close the dialog
+    console.log('[CallDialog][endCallHandler] Closing dialog');
     onClose();
-  }, [activeCall, endCall, localStream, onClose, remoteStream]);
+  }, [activeCall, endCall, localStream, onClose, remoteStream, timer]);
 
   // Initialize call streams when dialog opens or call type changes
   useEffect(() => {

@@ -77,4 +77,35 @@ export interface CallEvent {
   answer?: RTCSessionDescription;
 }
 
+export interface InitiateCallParams {
+  targetUserId: string;
+  callType: 'video' | 'audio';
+}
+export interface RTCSessionDescriptionInit {
+  type: RTCSdpType;
+  sdp?: string;
+}
+export interface CallActions {
+  initiateCall: (params: InitiateCallParams) => Promise<{ callId: string }>;
+  answerCall: (callId: string, answer: RTCSessionDescriptionInit) => void;
+  rejectCall: (callId: string) => void;
+  endCall: (callId: string) => void;
+}
+export interface CallData {
+  callId: string;
+  callType: 'video' | 'audio';
+  status: 'RINGING' | 'ACTIVE' | 'IDLE' | 'FAILED';
+  startedAt: string;
+  isIncoming: boolean;
+  peerConnection: RTCPeerConnection | null;
+  localStream: MediaStream | null;
+  remoteStream: MediaStream | null;
+  otherParty: {
+    userId: string;
+    username: string;
+    fullName: string;
+    profilePhotoUrl: string;
+  };
+}
+
 export type CallStore = CallState & CallActions;

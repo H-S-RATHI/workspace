@@ -61,16 +61,31 @@ export const ChatHeader = ({ className = '' }: ChatHeaderProps) => {
   const [isCallDialogOpen, setIsCallDialogOpen] = useState(false);
   const [targetUserId, setTargetUserId] = useState<string | null>(null);
   const [callType, setCallType] = useState<'audio' | 'video' | null>(null);
+  const [isCallInitiating, setIsCallInitiating] = useState(false);
 
   // Handle call start from dialog
   const handleCallStart = useCallback(async (type: 'audio' | 'video') => {
-    if (!currentConversation || !socket || !initiateCall) {
-      toast.error('Unable to start call. Please try again.');
+    // Prevent multiple initiations
+    if (isCallInitiating || !currentConversation || !socket || !initiateCall) {
+      if (!isCallInitiating) {
+        toast.error('Unable to start call. Please try again.');
+      }
       return;
     }
 
+    // Close the dialog immediately to prevent multiple clicks
+    setIsCallDialogOpen(false);
+    
     try {
+      setIsCallInitiating(true);
       console.log(`[ChatHeader] Starting ${type} call to user ID:`, targetUserId);
+      
+      // Clear any existing call state
+      useCallStore.getState().endCall('any');
+      
+      // Add a small delay to ensure UI updates
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       await initiateCall({
         targetUserId: targetUserId!,
         callType: type,
@@ -78,11 +93,25 @@ export const ChatHeader = ({ className = '' }: ChatHeaderProps) => {
     } catch (error) {
       console.error(`[ChatHeader] Failed to initiate ${type} call:`, error);
       toast.error(`Failed to start ${type} call`);
+      
+      // Reset the call state on error
+      useCallStore.getState().endCall('any');
+    } finally {
+      // Add a small delay before allowing another call
+      setTimeout(() => {
+        setIsCallInitiating(false);
+      }, 1000);
     }
-  }, [currentConversation, socket, initiateCall, targetUserId]);
+  }, [currentConversation, socket, initiateCall, targetUserId, isCallInitiating]);
 
   // Open call dialog and set target user
   const openCallDialog = useCallback((type: 'audio' | 'video') => {
+    // Prevent multiple clicks with debounce
+    if (isCallInitiating) {
+      console.log('[ChatHeader] Call initiation in progress, ignoring click');
+      return;
+    }
+    
     if (!currentConversation) {
       toast.error('Please select a conversation first');
       return;
@@ -145,29 +174,39 @@ export const ChatHeader = ({ className = '' }: ChatHeaderProps) => {
       <div className="flex items-center space-x-4">
         <div className="flex items-center space-x-2">
           <button
-            onClick={() => openCallDialog('audio')}
-            disabled={!currentConversation || !socket}
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              openCallDialog('audio');
+            }}
+            disabled={!currentConversation || !socket || isCallInitiating}
             className={cn(
-              'p-2 rounded-full transition-colors',
-              (currentConversation && socket) 
-                ? 'text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:text-gray-300 dark:hover:text-blue-400 dark:hover:bg-gray-700'
-                : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+              'p-2 rounded-full transition-all',
+              (currentConversation && socket && !isCallInitiating) 
+                ? 'text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:text-gray-300 dark:hover:text-blue-400 dark:hover:bg-gray-700 active:scale-95 transform'
+                : 'text-gray-300 dark:text-gray-600 cursor-not-allowed',
+              isCallInitiating && 'opacity-50 cursor-wait animate-pulse'
             )}
-            aria-label={currentConversation && socket ? 'Start a call' : 'Select a conversation to call'}
-            title={currentConversation && socket ? 'Start a call' : 'Select a conversation to call'}
+            aria-label={isCallInitiating ? 'Starting call...' : (currentConversation && socket ? 'Start a call' : 'Select a conversation to call')}
+            title={isCallInitiating ? 'Starting call...' : (currentConversation && socket ? 'Start a call' : 'Select a conversation to call')}
           >
             <Phone className="w-5 h-5" />
           </button>
           <button
-            onClick={() => openCallDialog('video')}
-            disabled={!currentConversation || !socket}
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              openCallDialog('video');
+            }}
+            disabled={!currentConversation || !socket || isCallInitiating}
             className={cn(
-              'p-2 rounded-full transition-colors',
-              (currentConversation && socket) 
-                ? 'text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:text-gray-300 dark:hover:text-blue-400 dark:hover:bg-gray-700'
-                : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+              'p-2 rounded-full transition-all',
+              (currentConversation && socket && !isCallInitiating) 
+                ? 'text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:text-gray-300 dark:hover:text-blue-400 dark:hover:bg-gray-700 active:scale-95 transform'
+                : 'text-gray-300 dark:text-gray-600 cursor-not-allowed',
+              isCallInitiating && 'opacity-50 cursor-wait animate-pulse'
             )}
-            aria-label={currentConversation && socket ? 'Start a video call' : 'Select a conversation to call'}
+            aria-label={isCallInitiating ? 'Starting call...' : (currentConversation && socket ? 'Start a video call' : 'Select a conversation to call')}
             title={currentConversation && socket ? 'Start a video call' : 'Select a conversation to call'}
           >
             <Video className="w-5 h-5" />
