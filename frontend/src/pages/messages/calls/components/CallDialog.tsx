@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/Button';
 import { Phone, Video } from 'lucide-react';
-import { VoiceCallDialog } from './calls/VoiceCallDialog';
-import { VideoCallDialog } from './calls/VideoCallDialog';
+import { VoiceCallDialog } from './VoiceCallDialog';
+import { VideoCallDialog } from './VideoCallDialog';
 import { useCallStore } from '@/store/call/store';
 
 type CallType = 'audio' | 'video' | null;
@@ -28,40 +28,77 @@ export function CallDialog({
   const [isSpeakerOn, setIsSpeakerOn] = useState(true);
   const [isVideoOn, setIsVideoOn] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [callStartTime, setCallStartTime] = useState<number | null>(null);
   const [callDuration, setCallDuration] = useState(0);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   
   const { activeCall, endCall } = useCallStore();
 
+  const endCallHandler = useCallback(() => {
+    // Clean up streams
+    if (localStream) {
+      localStream.getTracks().forEach(track => track.stop());
+      setLocalStream(null);
+    }
+    if (remoteStream) {
+      remoteStream.getTracks().forEach(track => track.stop());
+      setRemoteStream(null);
+    }
+    
+    // Reset state
+    setCallType(null);
+    setCallDuration(0);
+    setIsMuted(false);
+    setIsVideoOn(true);
+    setIsSpeakerOn(true);
+    setIsFullscreen(false);
+    
+    // End the call in the store
+    if (activeCall) {
+      endCall(activeCall.callId);
+    }
+    
+    onClose();
+  }, [activeCall, endCall, localStream, onClose, remoteStream]);
+
   // Initialize call streams when call starts
   useEffect(() => {
     if (callType && isOpen) {
-      const initializeStreams = async () => {
-        try {
-          // For demo purposes, we'll just create empty streams
-          // In a real app, you would set up WebRTC connections here
-          const stream = new MediaStream();
-          setLocalStream(stream);
-          setRemoteStream(stream.clone());
-          
-          setCallStartTime(Date.now());
-          // Start call duration timer
-          const timer = setInterval(() => {
-            setCallDuration(Math.floor((Date.now() - (callStartTime || Date.now())) / 1000));
-          }, 1000);
-          
-          return () => clearInterval(timer);
-        } catch (error) {
-          console.error('Error initializing call streams:', error);
-          onEndCall();
+      let timer: NodeJS.Timeout;
+      
+      try {
+        // For demo purposes, we'll just create empty streams
+        // In a real app, you would set up WebRTC connections here
+        const stream = new MediaStream();
+        setLocalStream(stream);
+        setRemoteStream(stream.clone());
+        
+        const startTime = Date.now();
+        
+        // Start call duration timer
+        timer = setInterval(() => {
+          setCallDuration(Math.floor((Date.now() - startTime) / 1000));
+        }, 1000);
+      } catch (error) {
+        console.error('Error initializing call streams:', error);
+        endCallHandler();
+      }
+      
+      // Cleanup function
+      return () => {
+        if (timer) {
+          clearInterval(timer);
+        }
+        // Clean up streams if component unmounts
+        if (localStream) {
+          localStream.getTracks().forEach(track => track.stop());
+        }
+        if (remoteStream) {
+          remoteStream.getTracks().forEach(track => track.stop());
         }
       };
-
-      initializeStreams();
     }
-  }, [callType, isOpen]);
+  }, [callType, isOpen, endCallHandler, localStream, remoteStream]);
 
   const handleCallStart = (type: 'audio' | 'video') => {
     setCallType(type);
@@ -98,47 +135,20 @@ export function CallDialog({
     setIsFullscreen(!isFullscreen);
   };
 
-  const onEndCall = () => {
-    // Clean up streams
-    if (localStream) {
-      localStream.getTracks().forEach(track => track.stop());
-      setLocalStream(null);
-    }
-    if (remoteStream) {
-      remoteStream.getTracks().forEach(track => track.stop());
-      setRemoteStream(null);
-    }
-    
-    // Reset state
-    setCallType(null);
-    setCallDuration(0);
-    setCallStartTime(null);
-    setIsMuted(false);
-    setIsVideoOn(true);
-    setIsSpeakerOn(true);
-    setIsFullscreen(false);
-    
-    // End the call in the store
-    if (activeCall) {
-      endCall(activeCall.callId);
-    }
-    
-    onClose();
-  };
-
   // If we're in a call, show the appropriate call UI
   if (callType === 'audio') {
     return (
       <VoiceCallDialog
         isOpen={isOpen}
-        onClose={onEndCall}
         recipientName={recipientName}
         recipientAvatar={recipientAvatar}
         onToggleMute={handleToggleMute}
         onToggleSpeaker={handleToggleSpeaker}
-        onEndCall={onEndCall}
+        onToggleFullscreen={handleToggleFullscreen}
+        onEndCall={endCallHandler}
         isMuted={isMuted}
         isSpeakerOn={isSpeakerOn}
+        isFullscreen={isFullscreen}
         callDuration={callDuration}
       />
     );
@@ -154,7 +164,7 @@ export function CallDialog({
         onToggleVideo={handleToggleVideo}
         onToggleSpeaker={handleToggleSpeaker}
         onToggleFullscreen={handleToggleFullscreen}
-        onEndCall={onEndCall}
+        onEndCall={endCallHandler}
         isMuted={isMuted}
         isVideoOn={isVideoOn}
         isSpeakerOn={isSpeakerOn}
