@@ -77,5 +77,31 @@ export type SocketStore = {
   sendIceCandidate: (targetUserId: string, callId: string, candidate: RTCIceCandidate | null) => void
   emit: <T = any>(event: string, data: T) => void
 }
+import type { Socket } from 'socket.io-client';
+// Define action types for better type safety
+export type SetState = (partial: Partial<SocketStore> | ((state: SocketStore) => Partial<SocketStore>)) => void;
+export type GetState = () => SocketStore;
+// Define the shape of the response from socket events
+export interface SocketResponse {
+  success: boolean;
+  error?: string;
+  [key: string]: any;
+}
+// Action creator types
+export type ActionCreator = (set: SetState, get: GetState) => Record<string, any>;
+export interface ActionCreators {
+  createConnectionActions: ActionCreator;
+  createConversationActions: ActionCreator;
+  createMessageActions: ActionCreator;
+  createCallActions: ActionCreator;
+}
+// Socket store interface (assuming this exists in your store)
+export interface SocketStore {
+  socket: Socket | null;
+  isConnected: boolean;
+  onlineUsers: any[];
+  typingUsers: Record<string, any>;
+  // Add other socket store properties as needed
+}
 // Re-export Message type for convenience
 export type { Message }
