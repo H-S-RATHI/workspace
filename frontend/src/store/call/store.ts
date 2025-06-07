@@ -49,34 +49,73 @@ export const useCallStore = create<CallStoreState>((set: StoreSet, get: StoreGet
   
   ...createCallActions(set, get),
   
-  endCall: (callId: string) => {
+  endCall: async (callId: string) => {
     const { callTimeouts, activeCall } = get();
     
-    // Clear the timeout if it exists
-    if (callTimeouts[callId]) {
-      clearTimeout(callTimeouts[callId]);
-      set((state: CallStoreState) => {
-        const newTimeouts = { ...state.callTimeouts };
-        delete newTimeouts[callId];
-        return {
-          ...state,
-          callTimeouts: newTimeouts
-        };
+    // Don't proceed if there's no active call or if the call ID doesn't match
+    if (!activeCall || (activeCall.callId !== callId && callId !== 'any')) {
+      console.log('[CallStore][endCall] No matching active call to end');
+      return;
+    }
+    
+    console.log(`[CallStore][endCall] Ending call ${callId}`);
+    
+    // Clear any pending timeouts
+    Object.values(callTimeouts).forEach(timeout => clearTimeout(timeout));
+    
+    // Clean up peer connection
+    if (activeCall.peerConnection) {
+      console.log('[CallStore][endCall] Closing peer connection');
+      try {
+        // Close all transceivers
+        activeCall.peerConnection.getTransceivers?.().forEach(transceiver => {
+          try {
+            transceiver.stop?.();
+          } catch (e) {
+            console.error('Error stopping transceiver:', e);
+          }
+        });
+        
+        // Close the connection
+        activeCall.peerConnection.close();
+      } catch (e) {
+        console.error('Error closing peer connection:', e);
+      }
+    }
+    
+    // Stop all media tracks
+    if (activeCall.localStream) {
+      console.log('[CallStore][endCall] Stopping local stream tracks');
+      activeCall.localStream.getTracks().forEach(track => {
+        track.stop();
       });
     }
     
-    // Clean up peer connection if exists
-    if (activeCall?.peerConnection) {
-      activeCall.peerConnection.close();
+    if (activeCall.remoteStream) {
+      console.log('[CallStore][endCall] Stopping remote stream tracks');
+      activeCall.remoteStream.getTracks().forEach(track => {
+        track.stop();
+      });
     }
     
     // Reset the call state
     set({
       activeCall: null,
       isCallModalOpen: false,
+      callStatus: 'IDLE',
+      callTimeouts: {}
     });
     
     // Notify the other party that the call has ended
-    useSocketStore.getState().endCall(callId);
+    if (callId !== 'any') {
+      try {
+        console.log('[CallStore][endCall] Notifying other party of call end');
+        await useSocketStore.getState().endCall(callId);
+      } catch (e) {
+        console.error('Error notifying other party of call end:', e);
+      }
+    }
+    
+    console.log('[CallStore][endCall] Call ended and cleaned up');
   },
 }));

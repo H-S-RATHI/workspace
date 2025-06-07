@@ -73,18 +73,23 @@ export const ChatHeader = ({ className = '' }: ChatHeaderProps) => {
       return;
     }
 
+    // Prevent multiple clicks
+    if (isCallInitiating) return;
+    
     // Close the dialog immediately to prevent multiple clicks
     setIsCallDialogOpen(false);
+    setIsCallInitiating(true);
     
     try {
-      setIsCallInitiating(true);
       console.log(`[ChatHeader] Starting ${type} call to user ID:`, targetUserId);
       
       // Clear any existing call state
-      useCallStore.getState().endCall('any');
-      
-      // Add a small delay to ensure UI updates
-      await new Promise(resolve => setTimeout(resolve, 100));
+      const currentCall = useCallStore.getState().activeCall;
+      if (currentCall) {
+        console.log('[ChatHeader] Ending existing call before starting new one');
+        useCallStore.getState().endCall(currentCall.callId);
+        await new Promise(resolve => setTimeout(resolve, 300)); // Give time for cleanup
+      }
       
       await initiateCall({
         targetUserId: targetUserId!,
