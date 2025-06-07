@@ -1,7 +1,9 @@
 import { useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
+import { Plus } from 'lucide-react'
 import { ProductCard } from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
+import CreateListingModal from '../../components/marketplace/CreateListingModal'
 import { marketplaceService, type Product } from '../../services/marketplaceService'
 
 // Shop Tab - 2-column mobile, 4-column desktop grid layouts
@@ -155,31 +157,45 @@ const ShopTab = () => {
   )
 }
 
-const SellTab = () => (
-  <div className="h-full overflow-y-auto bg-gray-50">
-    <div className="p-6">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Sell</h2>
-          <p className="text-gray-600">Turn your items into cash with our marketplace</p>
-        </div>
-        
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <button className="bg-gradient-to-br from-green-600 to-emerald-600 text-white rounded-xl p-8 text-left hover:from-green-700 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl">
-            <div className="text-3xl mb-3">📸</div>
-            <h3 className="text-xl font-bold mb-2">Create New Listing</h3>
-            <p className="text-green-100">Take photos and list your item in minutes</p>
-          </button>
-          
-          <button className="bg-white border border-gray-200 rounded-xl p-8 text-left hover:border-gray-300 hover:shadow-md transition-all duration-200">
-            <div className="text-3xl mb-3">📋</div>
-            <h3 className="text-xl font-bold mb-2 text-gray-900">Manage Listings</h3>
-            <p className="text-gray-600">View and edit your active listings</p>
-          </button>
-        </div>
+const SellTab = () => {
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [myListings, setMyListings] = useState<any[]>([]);
 
-        {/* My Listings */}
+  const handleListingCreated = (newListing: any) => {
+    setMyListings(prev => [newListing, ...prev]);
+  };
+
+  return (
+    <div className="h-full overflow-y-auto bg-gray-50">
+      <div className="p-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Sell</h2>
+            <p className="text-gray-600">Turn your items into cash with our marketplace</p>
+          </div>
+          
+          {/* Quick Actions */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <button 
+              onClick={() => setShowCreateModal(true)}
+              className="bg-gradient-to-br from-green-600 to-emerald-600 text-white rounded-xl p-8 text-left hover:from-green-700 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+            >
+              <div className="flex items-center mb-3">
+                <Plus className="w-8 h-8 mr-2" />
+                <span className="text-2xl">📸</span>
+              </div>
+              <h3 className="text-xl font-bold mb-2">Create New Listing</h3>
+              <p className="text-green-100">Take photos and list your item in minutes</p>
+            </button>
+            
+            <button className="bg-white border border-gray-200 rounded-xl p-8 text-left hover:border-gray-300 hover:shadow-md transition-all duration-200">
+              <div className="text-3xl mb-3">📋</div>
+              <h3 className="text-xl font-bold mb-2 text-gray-900">Manage Listings</h3>
+              <p className="text-gray-600">View and edit your active listings</p>
+            </button>
+          </div>
+
+          {/* My Listings */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-6">My Listings</h3>
           <div className="space-y-4">
@@ -221,10 +237,18 @@ const SellTab = () => (
             ))}
           </div>
         </div>
+        </div>
       </div>
+
+      {/* Create Listing Modal */}
+      <CreateListingModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onListingCreated={handleListingCreated}
+      />
     </div>
-  </div>
-)
+  );
+};
 
 const DealsTab = () => (
   <div className="h-full overflow-y-auto bg-gray-50">

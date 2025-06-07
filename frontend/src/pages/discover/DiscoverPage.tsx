@@ -1,7 +1,9 @@
 import { useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
+import { Plus, Filter, Grid, List, Search, TrendingUp } from 'lucide-react'
 import { PostCard } from '../../components/ui/Card'
 import Input from '../../components/ui/Input'
+import CreatePostModal from '../../components/posts/CreatePostModal'
 import { discoverService, type Post } from '../../services/discoverService'
 
 // Feed Tab - Card-based infinite scroll
@@ -9,6 +11,7 @@ const FeedTab = () => {
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
   const [feedType, setFeedType] = useState<'for-you' | 'following'>('for-you')
+  const [showCreateModal, setShowCreateModal] = useState(false)
 
   useEffect(() => {
     loadPosts()
@@ -55,6 +58,10 @@ const FeedTab = () => {
     console.log('Share post:', postId)
   }
 
+  const handlePostCreated = (newPost: any) => {
+    setPosts(prev => [newPost, ...prev])
+  }
+
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp)
     const now = new Date()
@@ -70,6 +77,18 @@ const FeedTab = () => {
   return (
     <div className="h-full overflow-y-auto bg-gray-50">
       <div className="max-w-2xl mx-auto p-6">
+        {/* Header with Create Post Button */}
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Discover</h1>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Create Post</span>
+          </button>
+        </div>
+
         {/* Toggle: Following vs For You */}
         <div className="flex bg-white rounded-xl p-1 mb-6 shadow-sm border border-gray-100">
           <button 
@@ -128,6 +147,13 @@ const FeedTab = () => {
           )}
         </div>
       </div>
+
+      {/* Create Post Modal */}
+      <CreatePostModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onPostCreated={handlePostCreated}
+      />
     </div>
   )
 }
