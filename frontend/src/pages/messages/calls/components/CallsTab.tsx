@@ -25,32 +25,7 @@ const CallsTab = () => {
     <div className="flex flex-col h-full bg-gray-50">
       {/* Header */}
       <div className="px-6 pt-6 pb-4 border-b border-gray-200 bg-white">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Calls</h1>
-            <p className="text-sm text-gray-500">Manage your call history and contacts</p>
-          </div>
-          <div className="flex space-x-2">
-            <Button
-              variant="outline"
-              size="icon"
-              className="rounded-full w-10 h-10"
-              onClick={() => handleNewCall('audio')}
-              title="New voice call"
-            >
-              <Phone className="h-5 w-5" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="rounded-full w-10 h-10"
-              onClick={() => handleNewCall('video')}
-              title="New video call"
-            >
-              <Video className="h-5 w-5" />
-            </Button>
-          </div>
-        </div>
+
 
         {/* Search and Filter */}
         <div className="space-y-3">

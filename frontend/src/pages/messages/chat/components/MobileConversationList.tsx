@@ -61,12 +61,7 @@ const MobileConversationList = ({ onSelectConversation }: MobileConversationList
     <div className="h-full bg-white flex flex-col">
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-xl font-bold">Messages</h1>
-          <button className="p-2 hover:bg-white/20 rounded-full transition-colors">
-            <Plus className="w-6 h-6" />
-          </button>
-        </div>
+      
         
         {/* Search bar */}
         <form onSubmit={handleSearch} className="relative">
