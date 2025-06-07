@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Search, Plus } from 'lucide-react';
 import debounce from 'lodash.debounce';
 import { useChatStore } from '../../../../store/chatStore';
+import { useAuthStore } from '@/store/authStore';
 
 export const ConversationList = () => {
   const { 
@@ -14,6 +15,8 @@ export const ConversationList = () => {
     isLoading,
     error
   } = useChatStore()
+  
+  const currentUserId = useAuthStore(state => state.user?.userId);
   
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
@@ -263,7 +266,9 @@ export const ConversationList = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start">
                       <p className="text-sm font-medium text-gray-900 truncate">
-                        {conversation.displayName}
+                        {conversation.members?.length === 1 && conversation.members[0].userId === currentUserId 
+                        ? 'You' 
+                        : conversation.displayName}
                       </p>
                       <span className="text-xs text-gray-500 ml-2 flex-shrink-0">
                         {new Date(conversation.lastMessageAt).toLocaleTimeString([], { 

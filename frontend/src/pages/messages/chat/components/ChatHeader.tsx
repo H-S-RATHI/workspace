@@ -27,8 +27,18 @@ export const ChatHeader = ({ className = '' }: ChatHeaderProps) => {
   const { initiateCall } = useCallStore();
   const { socket } = useSocketStore();
 
+  // Get current user ID
+  const currentUserId = useAuthStore.getState().user?.userId;
+  
   // Derive values from conversation
-  const displayName = currentConversation?.displayName || 'Unknown User';
+  const isSelfChat = currentConversation?.members?.some(member => 
+    member.userId === currentUserId && 
+    currentConversation.members.length === 1
+  );
+  
+  const displayName = isSelfChat 
+    ? 'You' 
+    : currentConversation?.displayName || 'Unknown User';
   const avatarUrl = currentConversation?.displayPhoto;
   const status: UserStatus = isTyping ? 'typing' : 'online';
 

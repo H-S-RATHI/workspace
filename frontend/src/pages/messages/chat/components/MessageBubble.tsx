@@ -59,12 +59,22 @@ export const MessageBubble = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
       className={cn(
-        'flex',
-        isCurrentUser ? 'justify-end' : 'justify-start',
+        'flex flex-col',
+        isCurrentUser ? 'items-end' : 'items-start',
         'mb-2 px-4',
         'message-bubble-container'
       )}
     >
+      {!isCurrentUser && (
+        <span className="text-xs font-medium text-gray-500 mb-1 ml-1">
+          {message.senderUsername || 'User'}
+        </span>
+      )}
+      {isCurrentUser && (
+        <span className="text-xs font-medium text-blue-500 mb-1 mr-1">
+          You
+        </span>
+      )}
       <div 
         className={cn(
           'max-w-xs px-4 py-2 rounded-lg',
@@ -72,7 +82,8 @@ export const MessageBubble = ({
             ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-br-md shadow-md' 
             : 'bg-white text-gray-800 rounded-bl-md shadow-sm border border-gray-100',
           'hover:shadow-lg transition-all duration-200',
-          'message-bubble'
+          'message-bubble',
+          isCurrentUser ? 'ml-auto' : 'mr-auto'
         )}
         onMouseEnter={() => setShowTime(true)}
         onMouseLeave={() => setShowTime(false)}
