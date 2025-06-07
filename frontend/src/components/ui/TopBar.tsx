@@ -11,9 +11,13 @@ import {
   Gift,
   User,
   Settings,
-  BarChart2
+  BarChart2,
+  Bell,
+  Plus
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useAuthStore } from '../../store/authStore';
+import { getGradientClasses } from '../../styles/colors';
 
 interface TopBarProps {
   currentTab: string;
@@ -47,6 +51,7 @@ const subTabsConfig = {
 const TopBar = ({ currentTab, isMobile }: TopBarProps) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuthStore();
 
   // Get current sub-tabs based on active main tab
   const currentSubTabs = subTabsConfig[currentTab as keyof typeof subTabsConfig] || [];
@@ -59,44 +64,50 @@ const TopBar = ({ currentTab, isMobile }: TopBarProps) => {
   };
 
   const activeSubTab = getActiveSubTab();
+  const gradientClasses = getGradientClasses(currentTab);
 
-  // Get tab colors based on current main tab
+  // Get enhanced tab colors based on current main tab
   const getTabColors = () => {
     switch (currentTab) {
       case 'messages':
         return {
-          gradient: 'from-blue-600 to-indigo-600',
-          activeText: 'text-blue-600',
-          activeBg: 'bg-blue-50',
-          activeIndicator: 'bg-blue-600'
+          gradient: 'from-sky-400 via-blue-500 to-indigo-600',
+          activeText: 'text-sky-600',
+          activeBg: 'bg-gradient-to-r from-sky-50 to-blue-50',
+          activeIndicator: 'bg-gradient-to-r from-sky-400 to-blue-500',
+          glowColor: 'shadow-sky-200/50'
         };
       case 'discover':
         return {
-          gradient: 'from-purple-600 to-pink-600',
+          gradient: 'from-violet-500 via-purple-500 to-fuchsia-500',
           activeText: 'text-purple-600',
-          activeBg: 'bg-purple-50',
-          activeIndicator: 'bg-purple-600'
+          activeBg: 'bg-gradient-to-r from-violet-50 to-purple-50',
+          activeIndicator: 'bg-gradient-to-r from-violet-500 to-purple-500',
+          glowColor: 'shadow-purple-200/50'
         };
       case 'marketplace':
         return {
-          gradient: 'from-green-600 to-emerald-600',
-          activeText: 'text-green-600',
-          activeBg: 'bg-green-50',
-          activeIndicator: 'bg-green-600'
+          gradient: 'from-emerald-400 via-teal-500 to-green-600',
+          activeText: 'text-emerald-600',
+          activeBg: 'bg-gradient-to-r from-emerald-50 to-teal-50',
+          activeIndicator: 'bg-gradient-to-r from-emerald-400 to-teal-500',
+          glowColor: 'shadow-emerald-200/50'
         };
       case 'profile':
         return {
-          gradient: 'from-orange-600 to-red-600',
+          gradient: 'from-amber-400 via-orange-500 to-red-500',
           activeText: 'text-orange-600',
-          activeBg: 'bg-orange-50',
-          activeIndicator: 'bg-orange-600'
+          activeBg: 'bg-gradient-to-r from-amber-50 to-orange-50',
+          activeIndicator: 'bg-gradient-to-r from-amber-400 to-orange-500',
+          glowColor: 'shadow-orange-200/50'
         };
       default:
         return {
-          gradient: 'from-gray-600 to-gray-700',
-          activeText: 'text-gray-600',
-          activeBg: 'bg-gray-50',
-          activeIndicator: 'bg-gray-600'
+          gradient: 'from-slate-600 to-slate-700',
+          activeText: 'text-slate-600',
+          activeBg: 'bg-slate-50',
+          activeIndicator: 'bg-slate-600',
+          glowColor: 'shadow-slate-200/50'
         };
     }
   };
@@ -105,45 +116,60 @@ const TopBar = ({ currentTab, isMobile }: TopBarProps) => {
 
   if (isMobile) {
     return (
-      <div className="bg-white shadow-sm">
-        {/* Mobile Sub-tabs */}
-        <div className="flex bg-white">
-          {currentSubTabs.map((tab) => {
+      <div className="relative">
+        {/* Mobile Sub-tabs with modern design */}
+        <div className="flex px-4 py-3">
+          {currentSubTabs.map((tab, index) => {
             const Icon = tab.icon;
             const isActive = activeSubTab === tab.id;
             
             return (
-              <button
+              <motion.button
                 key={tab.id}
                 onClick={() => navigate(tab.path)}
-                className={`flex-1 flex flex-col items-center py-4 px-3 relative transition-all duration-200 ${
-                  isActive 
-                    ? `${colors.activeText}` 
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
+                className="flex-1 relative"
+                whileTap={{ scale: 0.95 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 17 }}
               >
-                <div className={`p-2 rounded-xl mb-2 transition-all duration-200 ${
-                  isActive ? colors.activeBg : 'hover:bg-gray-100'
+                <div className={`flex flex-col items-center py-3 px-2 rounded-2xl transition-all duration-300 ${
+                  isActive 
+                    ? `${colors.activeBg} ${colors.glowColor} shadow-lg` 
+                    : 'hover:bg-slate-50'
                 }`}>
-                  <Icon className="w-6 h-6" />
+                  {/* Icon with enhanced styling */}
+                  <div className={`p-2.5 rounded-xl mb-2 transition-all duration-300 ${
+                    isActive 
+                      ? `bg-gradient-to-br ${colors.gradient} shadow-lg ${colors.glowColor}` 
+                      : 'bg-slate-100 hover:bg-slate-200'
+                  }`}>
+                    <Icon 
+                      className={`w-5 h-5 transition-colors duration-300 ${
+                        isActive ? 'text-white' : 'text-slate-600'
+                      }`} 
+                    />
+                  </div>
+                  
+                  {/* Label with gradient text for active state */}
+                  <span className={`text-xs font-semibold transition-all duration-300 ${
+                    isActive 
+                      ? `bg-gradient-to-r ${colors.gradient} bg-clip-text text-transparent`
+                      : 'text-slate-600'
+                  }`}>
+                    {tab.label}
+                  </span>
                 </div>
-                <span className="text-xs font-medium">{tab.label}</span>
-                
+
+                {/* Active indicator with modern design */}
                 {isActive && (
                   <motion.div
-                    key={`mobile-indicator-${tab.id}`}
-                    className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 w-8 h-1 ${colors.activeIndicator} rounded-t-full`}
-                    initial={{ opacity: 0 }}
-                    animate={{ 
-                      opacity: 1,
-                      x: '-50%',
-                      width: '2rem'
-                    }}
-                    exit={{ opacity: 0 }}
-                    transition={{ type: 'spring', bounce: 0.2, duration: 0.3 }}
+                    layoutId="mobile-sub-indicator"
+                    className={`absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-12 h-1 ${colors.activeIndicator} rounded-full`}
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: 'spring', bounce: 0.3, duration: 0.4 }}
                   />
                 )}
-              </button>
+              </motion.button>
             );
           })}
         </div>
@@ -151,44 +177,48 @@ const TopBar = ({ currentTab, isMobile }: TopBarProps) => {
     );
   }
 
-  // Desktop Layout
+  // Desktop Layout - Completely Redesigned
   return (
-    <div className="bg-white border-b border-gray-200 shadow-sm">
-      {/* Clean Sub-tabs Only */}
-      <div className="px-6 py-4">
-        <div className="flex space-x-1 bg-gray-100 rounded-xl p-1">
+    <div className="relative">
+      {/* Top Global Bar */}
+
+      {/* Sub-tabs with Modern Design */}
+      <div className="px-6 pb-4">
+        <div className="flex space-x-2 bg-slate-100/80 backdrop-blur-sm rounded-2xl p-2">
           {currentSubTabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeSubTab === tab.id;
             
             return (
-              <button
+              <motion.button
                 key={tab.id}
                 onClick={() => navigate(tab.path)}
-                className={`flex items-center space-x-3 px-6 py-3 rounded-lg text-sm font-medium transition-all duration-200 relative flex-1 justify-center ${
-                  isActive 
-                    ? `bg-white ${colors.activeText} shadow-sm` 
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-                }`}
+                className="relative flex-1"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 17 }}
               >
-                <Icon className="w-5 h-5" />
-                <span className="font-semibold">{tab.label}</span>
-                
+                <div className={`flex items-center justify-center space-x-3 px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-300 ${
+                  isActive 
+                    ? `bg-white ${colors.activeText} shadow-lg ${colors.glowColor}` 
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                }`}>
+                  <Icon className="w-5 h-5" />
+                  <span>{tab.label}</span>
+                </div>
+
+                {/* Active background with gradient */}
                 {isActive && (
                   <motion.div
-                    key={`desktop-indicator-${tab.id}`}
-                    className="absolute inset-0 bg-white rounded-lg shadow-sm"
+                    layoutId="desktop-sub-indicator"
+                    className="absolute inset-0 bg-white rounded-xl shadow-lg"
                     initial={{ opacity: 0 }}
-                    animate={{ 
-                      opacity: 1,
-                      width: '100%'
-                    }}
-                    exit={{ opacity: 0 }}
-                    transition={{ type: 'spring', bounce: 0.2, duration: 0.3 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ type: 'spring', bounce: 0.2, duration: 0.4 }}
                     style={{ zIndex: -1 }}
                   />
                 )}
-              </button>
+              </motion.button>
             );
           })}
         </div>

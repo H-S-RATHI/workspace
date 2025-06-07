@@ -1,8 +1,10 @@
 import { useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { Plus } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Plus, ShoppingBag, Filter, Grid, Search, TrendingUp, Tag } from 'lucide-react'
 import { ProductCard } from '../../components/ui/Card'
-import Button from '../../components/ui/Button'
+import { Button, FloatingActionButton } from '../../components/ui/Button'
+import { Input } from '../../components/ui/Input'
 import CreateListingModal from '../../components/marketplace/CreateListingModal'
 import { marketplaceService, type Product } from '../../services/marketplaceService'
 
@@ -90,32 +92,85 @@ const ShopTab = () => {
   ]
 
   return (
-    <div className="h-full overflow-y-auto bg-gray-50">
-      <div className="p-6">
+    <div className="h-full overflow-y-auto bg-gradient-to-br from-emerald-50 via-teal-50 to-green-50">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 opacity-30">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(34,197,94,0.15)_1px,transparent_0)] bg-[length:24px_24px]"></div>
+      </div>
+
+      <div className="p-6 relative z-10">
         <div className="max-w-7xl mx-auto">
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Shop</h2>
-            <p className="text-gray-600">Discover amazing products from our community</p>
-          </div>
+          {/* Header */}
+          <motion.div 
+            className="mb-8"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="flex items-center mb-4">
+              <ShoppingBag className="w-8 h-8 text-emerald-500 mr-3" />
+              <h2 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-green-600 bg-clip-text text-transparent">
+                Marketplace
+              </h2>
+            </div>
+            <p className="text-slate-600 text-lg">Discover amazing products from our community</p>
+          </motion.div>
+          
+          {/* Search and Filter Bar */}
+          <motion.div 
+            className="flex flex-col sm:flex-row gap-4 mb-8"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+          >
+            <div className="flex-1">
+              <Input
+                placeholder="Search products..."
+                leftIcon={<Search className="w-5 h-5" />}
+                variant="modern"
+                className="w-full"
+              />
+            </div>
+            <Button
+              variant="outline"
+              icon={<Filter className="w-5 h-5" />}
+              className="bg-white/80 backdrop-blur-md border-white/20"
+            >
+              Filter
+            </Button>
+          </motion.div>
           
           {/* Categories */}
-          <div className="mb-8">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Categories</h3>
+          <motion.div 
+            className="mb-8"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <div className="flex items-center mb-6">
+              <Tag className="w-6 h-6 text-emerald-500 mr-2" />
+              <h3 className="text-xl font-bold text-slate-900">Categories</h3>
+            </div>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
-              {defaultCategories.map((category) => (
-                <button 
+              {defaultCategories.map((category, index) => (
+                <motion.button 
                   key={category.name} 
                   onClick={() => handleCategoryClick(category.name)}
-                  className={`bg-gradient-to-br ${category.color} text-white rounded-xl p-4 text-center hover:scale-105 transition-all duration-200 shadow-md ${
-                    selectedCategory === category.name ? 'ring-2 ring-white ring-offset-2' : ''
+                  className={`bg-gradient-to-br ${category.color} text-white rounded-2xl p-4 text-center hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl ${
+                    selectedCategory === category.name ? 'ring-2 ring-white ring-offset-2 scale-105' : ''
                   }`}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                 >
                   <div className="text-2xl mb-2">{category.icon}</div>
-                  <p className="font-medium text-sm">{category.name}</p>
-                </button>
+                  <p className="font-semibold text-sm">{category.name}</p>
+                </motion.button>
               ))}
             </div>
-          </div>
+          </motion.div>
 
           {/* Products Grid */}
           <div className="mb-8">

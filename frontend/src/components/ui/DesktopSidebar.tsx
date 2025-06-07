@@ -8,15 +8,21 @@ import {
   Menu,
   LogOut,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Sparkles,
+  TrendingUp,
+  Heart,
+  Bookmark
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 import { useAuthStore } from '../../store/authStore';
+import { getGradientClasses } from '../../styles/colors';
 
 interface DesktopSidebarProps {
   collapsed: boolean;
   onToggleCollapse: () => void;
+  currentTab: string;
 }
 
 const tabs = [
@@ -25,173 +31,274 @@ const tabs = [
     label: 'Messages',
     icon: MessageCircle,
     path: '/messages',
-    color: 'blue'
+    color: 'sky',
+    gradient: 'from-sky-400 to-blue-500',
+    description: 'Chat with friends'
   },
   {
     id: 'discover',
     label: 'Discover',
     icon: Compass,
     path: '/discover',
-    color: 'purple'
+    color: 'purple',
+    gradient: 'from-violet-500 to-purple-500',
+    description: 'Explore content'
   },
   {
     id: 'marketplace',
     label: 'Marketplace',
     icon: ShoppingBag,
     path: '/marketplace',
-    color: 'green'
+    color: 'emerald',
+    gradient: 'from-emerald-400 to-teal-500',
+    description: 'Buy and sell'
   },
   {
     id: 'profile',
     label: 'Profile',
     icon: User,
     path: '/profile',
-    color: 'orange'
+    color: 'orange',
+    gradient: 'from-amber-400 to-orange-500',
+    description: 'Your account'
   },
 ];
 
-const DesktopSidebar = ({ collapsed, onToggleCollapse }: DesktopSidebarProps) => {
-  const { handleLogout } = useAuthStore();
+const quickActions = [
+  {
+    id: 'trending',
+    label: 'Trending',
+    icon: TrendingUp,
+    color: 'text-pink-500',
+    bg: 'bg-pink-50 hover:bg-pink-100'
+  },
+  {
+    id: 'favorites',
+    label: 'Favorites',
+    icon: Heart,
+    color: 'text-red-500',
+    bg: 'bg-red-50 hover:bg-red-100'
+  },
+  {
+    id: 'saved',
+    label: 'Saved',
+    icon: Bookmark,
+    color: 'text-indigo-500',
+    bg: 'bg-indigo-50 hover:bg-indigo-100'
+  },
+];
+
+const DesktopSidebar = ({ collapsed, onToggleCollapse, currentTab }: DesktopSidebarProps) => {
+  const { handleLogout, user } = useAuthStore();
   const location = useLocation();
   
   const isTabActive = (path: string) => location.pathname.startsWith(path);
 
-  const getColorClasses = (color: string, active: boolean) => {
-    const colors = {
-      blue: active ? 'bg-blue-50 text-blue-700 border-blue-200' : 'hover:bg-blue-50 hover:text-blue-700',
-      purple: active ? 'bg-purple-50 text-purple-700 border-purple-200' : 'hover:bg-purple-50 hover:text-purple-700',
-      green: active ? 'bg-green-50 text-green-700 border-green-200' : 'hover:bg-green-50 hover:text-green-700',
-      orange: active ? 'bg-orange-50 text-orange-700 border-orange-200' : 'hover:bg-orange-50 hover:text-orange-700',
+  const getTabStyles = (tab: any, active: boolean) => {
+    if (active) {
+      return {
+        container: `bg-gradient-to-r ${tab.gradient} shadow-lg shadow-${tab.color}-200/50`,
+        text: 'text-white',
+        icon: 'text-white'
+      };
+    }
+    return {
+      container: `hover:bg-${tab.color}-50 hover:shadow-md`,
+      text: 'text-slate-600 hover:text-slate-900',
+      icon: 'text-slate-500 hover:text-slate-700'
     };
-    return colors[color as keyof typeof colors] || colors.blue;
   };
 
   return (
-    <motion.div 
-      animate={{ width: collapsed ? 80 : 280 }}
-      transition={{ duration: 0.3, ease: 'easeInOut' }}
-      className="h-full bg-white border-r border-gray-200 flex flex-col shadow-sm"
-    >
-      {/* Header */}
-      <div className="h-16 flex items-center justify-between px-4 border-b border-gray-100">
-        <AnimatePresence mode="wait">
-          {!collapsed && (
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.2 }}
-              className="flex items-center space-x-3"
-            >
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">SM</span>
-              </div>
-              <h1 className="text-lg font-bold text-gray-900">SocialApp</h1>
-            </motion.div>
-          )}
-        </AnimatePresence>
+    <div className="h-full flex flex-col relative">
+      {/* Header with modern design */}
+      <div className="flex items-center justify-between p-4">
         
-        <button
+        
+        <motion.button
           onClick={onToggleCollapse}
-          className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+          className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 transition-all duration-200 group"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {collapsed ? (
-            <ChevronRight className="w-5 h-5 text-gray-600" />
+            <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-slate-700" />
           ) : (
-            <ChevronLeft className="w-5 h-5 text-gray-600" />
+            <ChevronLeft className="w-4 h-4 text-slate-600 group-hover:text-slate-700" />
           )}
-        </button>
+        </motion.button>
       </div>
-      
-      {/* Navigation */}
-      <nav className="flex-1 p-4 overflow-y-auto">
-        <div className="space-y-2">
-          {tabs.map((tab) => {
+
+      {/* User Profile Section */}
+ 
+      {/* Main Navigation */}
+      <nav className="flex-1 px-4 overflow-y-auto">
+        <div className="space-y-3">
+          {/* Section Label */}
+          {!collapsed && (
+            <div className="px-3 py-2">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                Navigation
+              </p>
+            </div>
+          )}
+
+          {tabs.map((tab, index) => {
             const Icon = tab.icon;
             const active = isTabActive(tab.path);
+            const styles = getTabStyles(tab, active);
             
             return (
-              <Link
+              <motion.div
                 key={tab.id}
-                to={tab.path}
-                className={clsx(
-                  'flex items-center rounded-xl transition-all duration-200 group relative',
-                  collapsed ? 'p-3 justify-center' : 'p-4',
-                  active 
-                    ? `${getColorClasses(tab.color, true)} border shadow-sm` 
-                    : `text-gray-700 ${getColorClasses(tab.color, false)}`
-                )}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.1 }}
               >
-                <Icon 
+                <Link
+                  to={tab.path}
                   className={clsx(
-                    'w-6 h-6 transition-colors',
-                    active ? `text-${tab.color}-600` : 'text-gray-500 group-hover:text-current'
-                  )} 
-                />
-                
-                <AnimatePresence mode="wait">
-                  {!collapsed && (
-                    <motion.span
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -10 }}
-                      transition={{ duration: 0.2 }}
-                      className="ml-3 font-medium"
-                    >
-                      {tab.label}
-                    </motion.span>
+                    'flex items-center rounded-2xl transition-all duration-300 group relative overflow-hidden',
+                    collapsed ? 'p-3 justify-center' : 'p-4',
+                    styles.container
                   )}
-                </AnimatePresence>
+                >
+                  {/* Active background glow */}
+                  {active && (
+                    <motion.div
+                      className={`absolute inset-0 bg-gradient-to-r ${tab.gradient} opacity-10 rounded-2xl`}
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 0.3 }}
+                    />
+                  )}
 
-                {/* Tooltip for collapsed state */}
-                {collapsed && (
-                  <div className="absolute left-full ml-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
-                    {tab.label}
-                    <div className="absolute left-0 top-1/2 transform -translate-x-1 -translate-y-1/2 w-2 h-2 bg-gray-900 rotate-45"></div>
+                  <div className="relative z-10 flex items-center w-full">
+                    <Icon 
+                      className={clsx(
+                        'w-6 h-6 transition-all duration-300',
+                        styles.icon
+                      )} 
+                    />
+                    
+                    <AnimatePresence mode="wait">
+                      {!collapsed && (
+                        <motion.div
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -10 }}
+                          transition={{ duration: 0.2 }}
+                          className="ml-4 flex-1"
+                        >
+                          <span className={clsx('font-semibold text-sm', styles.text)}>
+                            {tab.label}
+                          </span>
+                          <p className={clsx(
+                            'text-xs mt-0.5',
+                            active ? 'text-white/80' : 'text-slate-400'
+                          )}>
+                            {tab.description}
+                          </p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
-                )}
-              </Link>
+
+                  {/* Modern tooltip for collapsed state */}
+                  {collapsed && (
+                    <div className="absolute left-full ml-3 px-4 py-3 bg-slate-900 text-white text-sm rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none whitespace-nowrap z-50 shadow-xl">
+                      <div className="font-semibold">{tab.label}</div>
+                      <div className="text-xs text-slate-300 mt-1">{tab.description}</div>
+                      <div className="absolute left-0 top-1/2 transform -translate-x-1 -translate-y-1/2 w-2 h-2 bg-slate-900 rotate-45"></div>
+                    </div>
+                  )}
+                </Link>
+              </motion.div>
             );
           })}
         </div>
+
+        {/* Quick Actions */}
+        {!collapsed && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="mt-8"
+          >
+            <div className="px-3 py-2 mb-3">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                Quick Actions
+              </p>
+            </div>
+            <div className="space-y-2">
+              {quickActions.map((action) => {
+                const Icon = action.icon;
+                return (
+                  <button
+                    key={action.id}
+                    className={clsx(
+                      'w-full flex items-center p-3 rounded-xl transition-all duration-200 group',
+                      action.bg
+                    )}
+                  >
+                    <Icon className={clsx('w-5 h-5', action.color)} />
+                    <span className="ml-3 text-sm font-medium text-slate-700 group-hover:text-slate-900">
+                      {action.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
       </nav>
       
-      {/* Footer */}
-      <div className="p-4 border-t border-gray-100">
-        <button
+      {/* Footer with modern logout */}
+      <div className="p-4 border-t border-slate-200/50">
+        <motion.button
           onClick={handleLogout}
           className={clsx(
-            'w-full flex items-center rounded-xl text-red-600 hover:bg-red-50 transition-all duration-200 group',
+            'w-full flex items-center rounded-2xl text-red-600 hover:bg-red-50 hover:shadow-lg transition-all duration-300 group relative overflow-hidden',
             collapsed ? 'p-3 justify-center' : 'p-4'
           )}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
         >
-          <LogOut className="w-6 h-6" />
+          {/* Hover background effect */}
+          <div className="absolute inset-0 bg-gradient-to-r from-red-50 to-pink-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
           
-          <AnimatePresence mode="wait">
-            {!collapsed && (
-              <motion.span
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                transition={{ duration: 0.2 }}
-                className="ml-3 font-medium"
-              >
-                Log out
-              </motion.span>
-            )}
-          </AnimatePresence>
+          <div className="relative z-10 flex items-center w-full">
+            <LogOut className="w-6 h-6 transition-transform duration-200 group-hover:scale-110" />
+            
+            <AnimatePresence mode="wait">
+              {!collapsed && (
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="ml-4"
+                >
+                  <span className="font-semibold text-sm">Log out</span>
+                  <p className="text-xs text-red-400 mt-0.5">Sign out safely</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
 
-          {/* Tooltip for collapsed state */}
+          {/* Modern tooltip for collapsed state */}
           {collapsed && (
-            <div className="absolute left-full ml-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
-              Log out
-              <div className="absolute left-0 top-1/2 transform -translate-x-1 -translate-y-1/2 w-2 h-2 bg-gray-900 rotate-45"></div>
+            <div className="absolute left-full ml-3 px-4 py-3 bg-red-600 text-white text-sm rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none whitespace-nowrap z-50 shadow-xl">
+              <div className="font-semibold">Log out</div>
+              <div className="text-xs text-red-200 mt-1">Sign out safely</div>
+              <div className="absolute left-0 top-1/2 transform -translate-x-1 -translate-y-1/2 w-2 h-2 bg-red-600 rotate-45"></div>
             </div>
           )}
-        </button>
+        </motion.button>
       </div>
-    </motion.div>
+    </div>
   )
 }
 

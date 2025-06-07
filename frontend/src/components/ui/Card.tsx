@@ -1,11 +1,14 @@
 import { ReactNode } from 'react';
 import { clsx } from 'clsx';
+import { motion } from 'framer-motion';
 
 interface CardProps {
   children: ReactNode;
   className?: string;
   hover?: boolean;
   onClick?: () => void;
+  variant?: 'default' | 'glass' | 'gradient' | 'elevated';
+  interactive?: boolean;
 }
 
 interface ProductCardProps {
@@ -44,25 +47,42 @@ interface PostCardProps {
   onShare?: () => void;
 }
 
-// Base Card Component
-export const Card = ({ children, className, hover = false, onClick }: CardProps) => {
+// Base Card Component with modern design
+export const Card = ({ 
+  children, 
+  className, 
+  hover = false, 
+  onClick, 
+  variant = 'default',
+  interactive = false
+}: CardProps) => {
+  const variants = {
+    default: 'bg-white border border-slate-200 shadow-sm hover:shadow-lg',
+    glass: 'bg-white/80 backdrop-blur-md border border-white/20 shadow-lg hover:shadow-xl',
+    gradient: 'bg-gradient-to-br from-white to-slate-50 border border-slate-200 shadow-lg hover:shadow-xl',
+    elevated: 'bg-white border border-slate-200 shadow-xl hover:shadow-2xl',
+  };
+
   return (
-    <div
+    <motion.div
       className={clsx(
-        'bg-white rounded-lg border border-gray-200',
-        'shadow-sm',
-        hover && 'hover:shadow-md transition-shadow duration-200',
+        'rounded-2xl transition-all duration-300',
+        variants[variant],
+        (hover || interactive) && 'hover:scale-[1.02]',
         onClick && 'cursor-pointer',
         className
       )}
       onClick={onClick}
+      whileHover={interactive ? { y: -4 } : undefined}
+      whileTap={interactive ? { scale: 0.98 } : undefined}
+      transition={{ type: 'spring', stiffness: 400, damping: 17 }}
     >
       {children}
-    </div>
+    </motion.div>
   );
 };
 
-// Product Card - Square image, title (2 lines max), price, ratings
+// Product Card - Enhanced with modern design
 export const ProductCard = ({ 
   image, 
   title, 
@@ -74,32 +94,44 @@ export const ProductCard = ({
 }: ProductCardProps) => {
   return (
     <Card 
-      className={clsx('overflow-hidden', className)} 
-      hover 
+      className={clsx('overflow-hidden group', className)} 
+      variant="elevated"
+      interactive
       onClick={onClick}
     >
-      <div className="relative">
+      <div className="relative overflow-hidden">
         <img 
           src={image} 
           alt={title}
-          className="w-full h-[165px] lg:h-[300px] object-cover"
+          className="w-full h-[165px] lg:h-[300px] object-cover transition-transform duration-300 group-hover:scale-110"
         />
+        {/* Gradient overlay on hover */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        
         {badge && (
-          <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-medium px-2 py-1 rounded">
+          <motion.div 
+            className="absolute top-3 left-3 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: 'spring', bounce: 0.5, duration: 0.3 }}
+          >
             {badge}
-          </div>
+          </motion.div>
         )}
       </div>
-      <div className="p-3">
-        <h3 className="font-medium text-gray-900 text-sm lg:text-base truncate-2 mb-1">
+      
+      <div className="p-4">
+        <h3 className="font-semibold text-slate-900 text-sm lg:text-base line-clamp-2 mb-2 group-hover:text-blue-600 transition-colors">
           {title}
         </h3>
         <div className="flex items-center justify-between">
-          <span className="text-lg font-bold text-gray-900">{price}</span>
+          <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            {price}
+          </span>
           {rating && (
-            <div className="flex items-center">
-              <span className="text-yellow-400">★</span>
-              <span className="text-sm text-gray-600 ml-1">{rating}</span>
+            <div className="flex items-center bg-amber-50 px-2 py-1 rounded-full">
+              <span className="text-amber-400 text-sm">★</span>
+              <span className="text-sm text-amber-600 ml-1 font-medium">{rating}</span>
             </div>
           )}
         </div>
@@ -108,7 +140,7 @@ export const ProductCard = ({
   );
 };
 
-// Conversation Card - Avatar + name + last message + timestamp
+// Conversation Card - Enhanced with modern design
 export const ConversationCard = ({
   avatar,
   name,
@@ -120,39 +152,64 @@ export const ConversationCard = ({
 }: ConversationCardProps) => {
   return (
     <Card 
-      className={clsx('p-4', className)} 
-      hover 
+      className={clsx('p-4 group', className)} 
+      variant={unread ? 'gradient' : 'default'}
+      interactive
       onClick={onClick}
     >
-      <div className="flex items-center space-x-3">
+      <div className="flex items-center space-x-4">
         <div className="relative">
           <img 
             src={avatar} 
             alt={name}
-            className="w-10 h-10 rounded-full object-cover"
+            className="w-12 h-12 rounded-full object-cover ring-2 ring-white shadow-lg transition-transform group-hover:scale-105"
           />
           {unread && (
-            <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+            <motion.div 
+              className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full border-2 border-white shadow-lg"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', bounce: 0.5, duration: 0.3 }}
+            />
           )}
         </div>
+        
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-1">
             <h3 className={clsx(
-              'text-sm font-medium truncate',
-              unread ? 'text-gray-900' : 'text-gray-700'
+              'text-sm font-semibold truncate transition-colors',
+              unread ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'
             )}>
               {name}
             </h3>
-            <span className="text-xs text-gray-500">{timestamp}</span>
+            <span className={clsx(
+              'text-xs transition-colors',
+              unread ? 'text-blue-600 font-medium' : 'text-slate-500'
+            )}>
+              {timestamp}
+            </span>
           </div>
+          
           <p className={clsx(
-            'text-sm truncate mt-1',
-            unread ? 'text-gray-900 font-medium' : 'text-gray-500'
+            'text-sm truncate transition-colors',
+            unread 
+              ? 'text-slate-700 font-medium' 
+              : 'text-slate-500 group-hover:text-slate-600'
           )}>
             {lastMessage}
           </p>
         </div>
       </div>
+      
+      {/* Unread indicator bar */}
+      {unread && (
+        <motion.div
+          className="absolute left-0 top-1/2 transform -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-blue-500 to-purple-500 rounded-r-full"
+          initial={{ scaleY: 0 }}
+          animate={{ scaleY: 1 }}
+          transition={{ type: 'spring', bounce: 0.3, duration: 0.4 }}
+        />
+      )}
     </Card>
   );
 };

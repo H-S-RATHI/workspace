@@ -1,8 +1,11 @@
 import { useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { Plus, Filter, Grid, List, Search, TrendingUp } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Plus, Filter, Grid, List, Search, TrendingUp, Heart, MessageCircle, Share, Bookmark } from 'lucide-react'
 import { PostCard } from '../../components/ui/Card'
-import Input from '../../components/ui/Input'
+import { Input } from '../../components/ui/Input'
+import { Button } from '../../components/ui/Button'
+import { FloatingActionButton } from '../../components/ui/Button'
 import CreatePostModal from '../../components/posts/CreatePostModal'
 import { discoverService, type Post } from '../../services/discoverService'
 
@@ -75,43 +78,69 @@ const FeedTab = () => {
   }
 
   return (
-    <div className="h-full overflow-y-auto bg-gray-50">
-      <div className="max-w-2xl mx-auto p-6">
+    <div className="h-full overflow-y-auto bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 opacity-30">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(139,69,19,0.15)_1px,transparent_0)] bg-[length:24px_24px]"></div>
+      </div>
+
+      <div className="max-w-2xl mx-auto p-6 relative z-10">
         {/* Header with Create Post Button */}
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Discover</h1>
-          <button
+        <motion.div 
+          className="flex items-center justify-between mb-8"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="flex items-center">
+            <TrendingUp className="w-8 h-8 text-purple-500 mr-3" />
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 bg-clip-text text-transparent">
+              Discover
+            </h1>
+          </div>
+          <Button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            variant="gradient"
+            size="md"
+            icon={<Plus className="w-5 h-5" />}
+            className="shadow-lg shadow-purple-200/50"
           >
-            <Plus className="w-5 h-5" />
-            <span>Create Post</span>
-          </button>
-        </div>
+            Create Post
+          </Button>
+        </motion.div>
 
         {/* Toggle: Following vs For You */}
-        <div className="flex bg-white rounded-xl p-1 mb-6 shadow-sm border border-gray-100">
-          <button 
+        <motion.div 
+          className="flex bg-white/80 backdrop-blur-md rounded-2xl p-1.5 mb-8 shadow-lg border border-white/20"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+        >
+          <motion.button 
             onClick={() => setFeedType('for-you')}
-            className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-colors ${
+            className={`flex-1 py-3 px-6 rounded-xl text-sm font-semibold transition-all duration-200 ${
               feedType === 'for-you' 
-                ? 'bg-blue-600 text-white shadow-sm' 
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                ? 'bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-lg shadow-purple-200/50' 
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
             }`}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
           >
             For You
-          </button>
-          <button 
+          </motion.button>
+          <motion.button 
             onClick={() => setFeedType('following')}
-            className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-colors ${
+            className={`flex-1 py-3 px-6 rounded-xl text-sm font-semibold transition-all duration-200 ${
               feedType === 'following' 
-                ? 'bg-blue-600 text-white shadow-sm' 
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                ? 'bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-lg shadow-purple-200/50' 
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
             }`}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
           >
             Following
-          </button>
-        </div>
+          </motion.button>
+        </motion.div>
 
         <div className="space-y-6">
           {loading ? (

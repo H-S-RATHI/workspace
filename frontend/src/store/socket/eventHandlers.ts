@@ -65,10 +65,28 @@ export const setupMessageHandlers = (socket: Socket) => {
       return;
     }
     
-    // Only process if this is for the current conversation
-    if (currentConversation && message.convoId === currentConversation.convoId) {
-      console.log('Adding new message from other user:', message);
-      useChatStore.setState((state) => {
+    // Update the conversations list with the new message
+    useChatStore.setState(state => {
+      const updatedConversations = state.conversations.map(conv =>
+        conv.convoId === message.convoId
+          ? { 
+              ...conv, 
+              lastMessage: message, 
+              lastMessageAt: message.timestamp,
+              // Increment unread count if this is not the current conversation
+              unreadCount: currentConversation?.convoId === message.convoId 
+                ? conv.unreadCount 
+                : conv.unreadCount + 1
+            }
+          : conv
+      ).sort((a, b) =>
+        new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+      );
+
+      // If this message is for the currently open conversation, add it to messages
+      if (currentConversation?.convoId === message.convoId) {
+        console.log('Adding new message to current conversation:', message);
+        
         // Check if message already exists to prevent duplicates
         const messageExists = state.messages.some(m => 
           m.messageId === message.messageId || 
@@ -76,24 +94,19 @@ export const setupMessageHandlers = (socket: Socket) => {
         );
         
         if (messageExists) {
-          console.log('Message already exists, skipping:', message.messageId);
-          return state;
+          console.log('Message already exists in current conversation, skipping:', message.messageId);
+          return { conversations: updatedConversations };
         }
         
         return {
           messages: [...state.messages, message],
-          conversations: state.conversations.map(conv =>
-            conv.convoId === currentConversation.convoId
-              ? { ...conv, lastMessage: message, lastMessageAt: message.timestamp }
-              : conv
-          ).sort((a, b) =>
-            new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
-          )
+          conversations: updatedConversations
         };
-      });
-    } else {
-      console.log('Message received for different conversation:', message.convoId);
-    }
+      } else {
+        console.log('Message received for different conversation:', message.convoId);
+        return { conversations: updatedConversations };
+      }
+    });
   })
   socket.on(SOCKET_EVENTS.MESSAGE_DELIVERED, ({ messageId }: MessageDeliveredEvent) => {
     console.log('Message delivered:', messageId)

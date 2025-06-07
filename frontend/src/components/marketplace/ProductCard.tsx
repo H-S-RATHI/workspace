@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Heart, ShoppingCart, Star, MapPin, Eye } from 'lucide-react';
+import { Heart, ShoppingCart, Star, MapPin, Eye, Plus } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { api } from '../../services/api';
 import toast from 'react-hot-toast';
 
@@ -198,49 +199,68 @@ const ProductCard: React.FC<ProductCardProps> = ({
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow group">
+    <motion.div 
+      className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden hover:shadow-2xl transition-all duration-300 group"
+      whileHover={{ y: -4 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+    >
       {/* Product Image */}
-      <div className="relative aspect-square bg-gray-200 cursor-pointer" onClick={handleViewProduct}>
+      <div className="relative aspect-square bg-gradient-to-br from-slate-100 to-slate-200 cursor-pointer overflow-hidden" onClick={handleViewProduct}>
         {product.primaryImage ? (
           <img
             src={product.primaryImage}
             alt={product.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <ShoppingCart className="w-12 h-12 text-gray-400" />
+            <ShoppingCart className="w-12 h-12 text-slate-400" />
           </div>
         )}
         
+        {/* Gradient overlay on hover */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        
         {/* Wishlist Button */}
-        <button
+        <motion.button
           onClick={handleToggleWishlist}
-          className={`absolute top-3 right-3 p-2 rounded-full transition-colors ${
+          className={`absolute top-4 right-4 p-2.5 rounded-full backdrop-blur-md transition-all duration-200 ${
             isInWishlist
-              ? 'text-red-500 bg-white shadow-md'
-              : 'text-gray-400 bg-white/80 hover:bg-white hover:text-red-500'
+              ? 'text-red-500 bg-white/90 shadow-lg scale-110'
+              : 'text-slate-400 bg-white/70 hover:bg-white/90 hover:text-red-500'
           }`}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
         >
           <Heart className={`w-5 h-5 ${isInWishlist ? 'fill-current' : ''}`} />
-        </button>
+        </motion.button>
         
         {/* Condition Badge */}
-        <div className="absolute top-3 left-3">
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getConditionColor(product.condition)}`}>
+        <div className="absolute top-4 left-4">
+          <motion.span 
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-md ${getConditionColor(product.condition)}`}
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: 'spring', bounce: 0.5, duration: 0.3 }}
+          >
             {formatCondition(product.condition)}
-          </span>
+          </motion.span>
         </div>
         
         {/* Quick View Button */}
-        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-          <button
+        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+          <motion.button
             onClick={handleViewProduct}
-            className="flex items-center space-x-2 px-4 py-2 bg-white text-gray-900 rounded-lg hover:bg-gray-100 transition-colors"
+            className="flex items-center space-x-2 px-6 py-3 bg-white/90 backdrop-blur-md text-slate-900 rounded-xl hover:bg-white transition-colors shadow-lg"
+            initial={{ scale: 0, opacity: 0 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 17 }}
           >
             <Eye className="w-4 h-4" />
-            <span>Quick View</span>
-          </button>
+            <span className="font-medium">Quick View</span>
+          </motion.button>
         </div>
       </div>
 

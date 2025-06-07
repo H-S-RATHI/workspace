@@ -1,9 +1,14 @@
-import { InputHTMLAttributes, TextareaHTMLAttributes, forwardRef } from 'react';
+import { InputHTMLAttributes, TextareaHTMLAttributes, forwardRef, ReactNode } from 'react';
 import { clsx } from 'clsx';
+import { motion } from 'framer-motion';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: boolean;
   helperText?: string;
+  variant?: 'default' | 'modern' | 'glass';
+  leftIcon?: ReactNode;
+  rightIcon?: ReactNode;
+  label?: string;
 }
 
 interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
@@ -11,6 +16,8 @@ interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   helperText?: string;
   autoExpand?: boolean;
   maxLines?: number;
+  variant?: 'default' | 'modern' | 'glass';
+  label?: string;
 }
 
 interface ChatInputProps extends InputProps {
@@ -18,38 +25,85 @@ interface ChatInputProps extends InputProps {
   sendDisabled?: boolean;
 }
 
-// Base Input Component - 50px height for chat
+// Enhanced Input Component with modern design
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, error, helperText, ...props }, ref) => {
+  ({ 
+    className, 
+    error, 
+    helperText, 
+    variant = 'modern',
+    leftIcon,
+    rightIcon,
+    label,
+    ...props 
+  }, ref) => {
+    const variants = {
+      default: 'border-slate-300 focus:ring-blue-500 focus:border-blue-500',
+      modern: 'border-slate-200 bg-slate-50 focus:bg-white focus:ring-blue-500 focus:border-blue-500 hover:border-slate-300',
+      glass: 'border-white/20 bg-white/10 backdrop-blur-md focus:bg-white/20 focus:ring-blue-500 focus:border-blue-500',
+    };
+
     return (
       <div className="w-full">
-        <input
-          ref={ref}
-          className={clsx(
-            // Base styles
-            'w-full h-12 px-4 py-3 rounded-lg border transition-colors',
-            'text-sm placeholder:text-gray-500',
-            'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-            
-            // Error styles
-            error 
-              ? 'border-red-300 focus:ring-red-500' 
-              : 'border-gray-300 focus:ring-blue-500',
-            
-            // Disabled styles
-            'disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed',
-            
-            className
+        {label && (
+          <label className="block text-sm font-semibold text-slate-700 mb-2">
+            {label}
+          </label>
+        )}
+        
+        <div className="relative">
+          {leftIcon && (
+            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400">
+              {leftIcon}
+            </div>
           )}
-          {...props}
-        />
+          
+          <motion.input
+            ref={ref}
+            className={clsx(
+              // Base styles
+              'w-full h-12 px-4 py-3 rounded-xl border transition-all duration-200',
+              'text-sm placeholder:text-slate-400 text-slate-900',
+              'focus:outline-none focus:ring-2 focus:ring-offset-0',
+              
+              // Variant styles
+              error 
+                ? 'border-red-300 focus:ring-red-500 focus:border-red-500 bg-red-50' 
+                : variants[variant],
+              
+              // Icon padding
+              leftIcon && 'pl-10',
+              rightIcon && 'pr-10',
+              
+              // Disabled styles
+              'disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed disabled:border-slate-200',
+              
+              className
+            )}
+            whileFocus={{ scale: 1.01 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+            {...props}
+          />
+          
+          {rightIcon && (
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400">
+              {rightIcon}
+            </div>
+          )}
+        </div>
+        
         {helperText && (
-          <p className={clsx(
-            'mt-1 text-xs',
-            error ? 'text-red-600' : 'text-gray-500'
-          )}>
+          <motion.p 
+            className={clsx(
+              'mt-2 text-xs',
+              error ? 'text-red-600' : 'text-slate-500'
+            )}
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2 }}
+          >
             {helperText}
-          </p>
+          </motion.p>
         )}
       </div>
     );
@@ -106,34 +160,44 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
 
 Textarea.displayName = 'Textarea';
 
-// Chat Input Component - 50px height with send button
+// Enhanced Chat Input Component with modern design
 export const ChatInput = forwardRef<HTMLInputElement, ChatInputProps>(
   ({ onSend, sendDisabled, className, ...props }, ref) => {
     return (
-      <div className="flex items-center space-x-2 p-4 bg-white border-t border-gray-200">
+      <div className="flex items-center space-x-3 p-4 bg-white/80 backdrop-blur-md border-t border-slate-200/50">
         <div className="flex-1">
           <Input
             ref={ref}
-            className={clsx('h-12', className)}
+            variant="modern"
+            className={clsx('h-12 border-slate-200', className)}
             placeholder="Type a message..."
             {...props}
           />
         </div>
-        <button
+        
+        <motion.button
           onClick={onSend}
           disabled={sendDisabled}
           className={clsx(
-            'w-12 h-12 rounded-full flex items-center justify-center transition-colors',
+            'w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-200 relative overflow-hidden',
             'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
             sendDisabled
-              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              : 'bg-blue-600 text-white hover:bg-blue-700'
+              ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+              : 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 shadow-lg hover:shadow-xl'
           )}
+          whileHover={!sendDisabled ? { scale: 1.05 } : undefined}
+          whileTap={!sendDisabled ? { scale: 0.95 } : undefined}
+          transition={{ type: 'spring', stiffness: 400, damping: 17 }}
         >
-          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+          {/* Shimmer effect */}
+          {!sendDisabled && (
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" />
+          )}
+          
+          <svg className="w-5 h-5 relative z-10" fill="currentColor" viewBox="0 0 20 20">
             <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
           </svg>
-        </button>
+        </motion.button>
       </div>
     );
   }

@@ -1,57 +1,162 @@
+import { motion } from 'framer-motion'
+import { User, Edit3, MapPin, Calendar, Star, Award, Settings } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
+import { Avatar } from '../../components/ui/Avatar'
+import { Button } from '../../components/ui/Button'
+import { Card } from '../../components/ui/Card'
 
 // Profile Tab Component
 const ProfileTab = () => {
   const { user } = useAuthStore()
   
   return (
-    <div className="h-full overflow-y-auto bg-gray-50">
-      <div className="p-6">
+    <div className="h-full overflow-y-auto bg-gradient-to-br from-amber-50 via-orange-50 to-red-50">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 opacity-30">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(251,146,60,0.15)_1px,transparent_0)] bg-[length:24px_24px]"></div>
+      </div>
+
+      <div className="p-6 relative z-10">
         <div className="max-w-4xl mx-auto">
           {/* Profile Header */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 mb-8">
-            <div className="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8">
-              <div className="relative">
-                <img
-                  src={user?.profilePhotoUrl || `https://ui-avatars.com/api/?name=${user?.fullName}&background=3b82f6&color=fff&size=128`}
-                  alt={user?.fullName}
-                  className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
-                />
-                <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-green-500 rounded-full border-4 border-white"></div>
-              </div>
-              
-              <div className="flex-1 text-center md:text-left">
-                <h2 className="text-3xl font-bold text-gray-900 mb-2">{user?.fullName}</h2>
-                <p className="text-gray-600 text-lg mb-3">@{user?.username}</p>
-                {user?.bio && <p className="text-gray-700 mb-6 max-w-md">{user.bio}</p>}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Card variant="glass" className="p-8 mb-8 backdrop-blur-xl border-white/20">
+              <div className="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8">
+                <motion.div 
+                  className="relative"
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+                >
+                  <Avatar
+                    src={user?.profilePhotoUrl}
+                    alt={user?.fullName}
+                    size="2xl"
+                    status="online"
+                    ring={true}
+                    gradient={!user?.profilePhotoUrl}
+                    fallback={user?.fullName?.charAt(0)}
+                  />
+                  <motion.div 
+                    className="absolute -bottom-2 -right-2 w-10 h-10 bg-gradient-to-r from-amber-400 to-orange-500 rounded-full border-4 border-white shadow-lg flex items-center justify-center"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', bounce: 0.5, duration: 0.3, delay: 0.2 }}
+                  >
+                    <Award className="w-5 h-5 text-white" />
+                  </motion.div>
+                </motion.div>
                 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">156</div>
-                    <div className="text-sm text-gray-600">Posts</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">1.2K</div>
-                    <div className="text-sm text-gray-600">Followers</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">890</div>
-                    <div className="text-sm text-gray-600">Following</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">23</div>
-                    <div className="text-sm text-gray-600">Listings</div>
-                  </div>
-                </div>
-                
-                <button className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-medium shadow-md">
-                  Edit Profile
-                </button>
+                <div className="flex-1 text-center md:text-left">
+                  <motion.h2 
+                    className="text-4xl font-bold bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 bg-clip-text text-transparent mb-2"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.5, delay: 0.1 }}
+                  >
+                    {user?.fullName}
+                  </motion.h2>
+                  <motion.p 
+                    className="text-slate-600 text-lg mb-3 font-medium"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                  >
+                    @{user?.username}
+                  </motion.p>
+                  
+                  {user?.bio && (
+                    <motion.p 
+                      className="text-slate-700 mb-6 max-w-md"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.5, delay: 0.3 }}
+                    >
+                      {user.bio}
+                    </motion.p>
+                  )}
+                  
+                  {/* User Info */}
+                  <motion.div 
+                    className="flex flex-wrap gap-4 mb-6 text-sm text-slate-600"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.4 }}
+                  >
+                    <div className="flex items-center">
+                      <MapPin className="w-4 h-4 mr-1" />
+                      <span>New York, NY</span>
+                    </div>
+                    <div className="flex items-center">
+                      <Calendar className="w-4 h-4 mr-1" />
+                      <span>Joined March 2024</span>
+                    </div>
+                    <div className="flex items-center">
+                      <Star className="w-4 h-4 mr-1 text-amber-500" />
+                      <span>4.9 Rating</span>
+                    </div>
+                  </motion.div>
+                  
+                  {/* Stats */}
+                  <motion.div 
+                    className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.5 }}
+                  >
+                    {[
+                      { label: 'Posts', value: '156', color: 'from-blue-500 to-cyan-500' },
+                      { label: 'Followers', value: '1.2K', color: 'from-purple-500 to-pink-500' },
+                      { label: 'Following', value: '890', color: 'from-green-500 to-emerald-500' },
+                      { label: 'Listings', value: '23', color: 'from-orange-500 to-red-500' }
+                    ].map((stat, index) => (
+                      <motion.div 
+                        key={stat.label}
+                        className="text-center"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.3, delay: 0.6 + index * 0.1 }}
+                      >
+                        <div className={`text-3xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
+                          {stat.value}
+                        </div>
+                        <div className="text-sm text-slate-600 font-medium">{stat.label}</div>
+                      </motion.div>
+                    ))}
+                  </motion.div>
+                  
+                  {/* Action Buttons */}
+                  <motion.div 
+                    className="flex flex-col sm:flex-row gap-4"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.7 }}
+                  >
+                    <Button
+                      variant="gradient"
+                      size="lg"
+                      icon={<Edit3 className="w-5 h-5" />}
+                      className="shadow-lg shadow-orange-200/50"
+                    >
+                      Edit Profile
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      icon={<Settings className="w-5 h-5" />}
+                      className="bg-white/80 backdrop-blur-md border-white/20"
+                    >
+                      Settings
+                    </Button>
+                  </motion.div>
               </div>
             </div>
-          </div>
-
+          </Card>
+          
           {/* Achievements */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
             <h3 className="text-xl font-bold text-gray-900 mb-6">Achievements</h3>
@@ -94,11 +199,11 @@ const ProfileTab = () => {
               ))}
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
     </div>
+  </div>
   )
-}
 
 const SettingsTab = () => (
   <div className="h-full overflow-y-auto bg-gray-50">
@@ -303,5 +408,5 @@ const ProfilePage = () => {
     return <ProfileTab />
   }
 }
-
-export default ProfilePage
+}
+export default ProfileTab

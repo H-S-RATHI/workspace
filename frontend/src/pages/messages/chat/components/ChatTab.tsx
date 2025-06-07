@@ -50,7 +50,9 @@ const ChatTab = () => {
 
   if (isMobile) {
     return (
+
       <div className="h-full bg-gradient-to-br from-blue-50 to-indigo-100">
+
         {!showChat ? (
           <MobileConversationList onSelectConversation={() => setShowChat(true)} />
         ) : (
@@ -61,7 +63,10 @@ const ChatTab = () => {
   }
 
   return (
+
     <div className="flex h-full bg-gradient-to-br from-blue-50 to-indigo-100">
+
+
       <ConversationList />
       <ChatWindow key={currentConversation?.convoId || 'no-convo'} />
     </div>

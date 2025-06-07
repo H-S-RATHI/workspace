@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
-import { motion } from 'framer-motion'
-import { Phone, Mail, ArrowRight } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Phone, Mail, ArrowRight, Shield, Sparkles } from 'lucide-react'
 
 import { useAuthStore } from '../../store/authStore'
+import { Input } from '../../components/ui/Input'
+import { Button } from '../../components/ui/Button'
 import type { LoginCredentials } from '../../types/auth'
 
 type LoginMethod = 'phone' | 'email'
@@ -61,141 +63,180 @@ const LoginPage = () => {
     : emailValue && emailValue.includes('@')
 
   return (
-    <div className="space-y-6">
-      <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          {message ? 'Account Exists' : 'Welcome back'}
-        </h2>
-        <p className="text-gray-600">
+    <div className="space-y-8">
+      {/* Header */}
+      <motion.div 
+        className="text-center"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="flex items-center justify-center mb-4">
+          <Sparkles className="w-6 h-6 text-blue-500 mr-2" />
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+            {message ? 'Account Exists' : 'Welcome back'}
+          </h2>
+        </div>
+        <p className="text-slate-600 text-lg">
           {message || 'Sign in to your account to continue'}
         </p>
-      </div>
+      </motion.div>
 
       {/* Login Method Toggle */}
-      <div className="flex bg-gray-100 rounded-lg p-1">
-        <button
+      <motion.div 
+        className="flex bg-slate-100 rounded-2xl p-1.5 shadow-inner"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+      >
+        <motion.button
           type="button"
           onClick={() => setLoginMethod('phone')}
-          className={`flex-1 flex items-center justify-center py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+          className={`flex-1 flex items-center justify-center py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-200 ${
             loginMethod === 'phone'
-              ? 'bg-white text-gray-900 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
+              ? 'bg-white text-slate-900 shadow-lg shadow-slate-200/50'
+              : 'text-slate-600 hover:text-slate-900'
           }`}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
         >
-          <Phone size={16} className="mr-2" />
+          <Phone size={18} className="mr-2" />
           Phone
-        </button>
-        <button
+        </motion.button>
+        <motion.button
           type="button"
           onClick={() => setLoginMethod('email')}
-          className={`flex-1 flex items-center justify-center py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+          className={`flex-1 flex items-center justify-center py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-200 ${
             loginMethod === 'email'
-              ? 'bg-white text-gray-900 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
+              ? 'bg-white text-slate-900 shadow-lg shadow-slate-200/50'
+              : 'text-slate-600 hover:text-slate-900'
           }`}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
         >
-          <Mail size={16} className="mr-2" />
+          <Mail size={18} className="mr-2" />
           Email
-        </button>
-      </div>
+        </motion.button>
+      </motion.div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {loginMethod === 'phone' ? (
-          <div>
-            <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-2">
-              Phone Number
-            </label>
-            <input
-              {...register('phoneNumber', {
-                required: 'Phone number is required',
-                pattern: {
-                  value: /^\+?[1-9]\d{1,14}$/,
-                  message: 'Please enter a valid phone number',
-                },
-              })}
-              type="tel"
-              placeholder="+1 (555) 123-4567"
-              className={`input ${errors.phoneNumber ? 'input-error' : ''}`}
-            />
-            {errors.phoneNumber && (
-              <p className="mt-1 text-sm text-red-600">{errors.phoneNumber.message}</p>
-            )}
-          </div>
-        ) : (
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-              Email Address
-            </label>
-            <input
-              {...register('email', {
-                required: 'Email is required',
-                pattern: {
-                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                  message: 'Please enter a valid email address',
-                },
-              })}
-              type="email"
-              placeholder="you@example.com"
-              className={`input ${errors.email ? 'input-error' : ''}`}
-            />
-            {errors.email && (
-              <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
-            )}
-          </div>
-        )}
+      {/* Form */}
+      <motion.form 
+        onSubmit={handleSubmit(onSubmit)} 
+        className="space-y-6"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+      >
+        <AnimatePresence mode="wait">
+          {loginMethod === 'phone' ? (
+            <motion.div
+              key="phone"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Input
+                {...register('phoneNumber', {
+                  required: 'Phone number is required',
+                  pattern: {
+                    value: /^\+?[1-9]\d{1,14}$/,
+                    message: 'Please enter a valid phone number',
+                  },
+                })}
+                type="tel"
+                label="Phone Number"
+                placeholder="+1 (555) 123-4567"
+                leftIcon={<Phone className="w-5 h-5" />}
+                error={!!errors.phoneNumber}
+                helperText={errors.phoneNumber?.message}
+                variant="modern"
+              />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="email"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Input
+                {...register('email', {
+                  required: 'Email is required',
+                  pattern: {
+                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                    message: 'Please enter a valid email address',
+                  },
+                })}
+                type="email"
+                label="Email Address"
+                placeholder="you@example.com"
+                leftIcon={<Mail className="w-5 h-5" />}
+                error={!!errors.email}
+                helperText={errors.email?.message}
+                variant="modern"
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        <motion.button
+        <Button
           type="submit"
           disabled={!isFormValid || isLoading}
-          whileHover={{ scale: isFormValid ? 1.02 : 1 }}
-          whileTap={{ scale: isFormValid ? 0.98 : 1 }}
-          className={`w-full btn btn-primary btn-lg flex items-center justify-center ${
-            !isFormValid || isLoading ? 'opacity-50 cursor-not-allowed' : ''
-          }`}
+          loading={isLoading}
+          variant="primary"
+          size="lg"
+          className="w-full"
+          icon={<ArrowRight className="w-5 h-5" />}
+          iconPosition="right"
         >
-          {isLoading ? (
-            <div className="loading-dots">
-              <div></div>
-              <div></div>
-              <div></div>
-            </div>
-          ) : (
-            <>
-              Send OTP
-              <ArrowRight size={20} className="ml-2" />
-            </>
-          )}
-        </motion.button>
-      </form>
+          {isLoading ? 'Sending OTP...' : 'Send OTP'}
+        </Button>
+      </motion.form>
 
-      <div className="text-center">
-        <p className="text-gray-600">
+      {/* Sign up link */}
+      <motion.div 
+        className="text-center"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, delay: 0.3 }}
+      >
+        <p className="text-slate-600">
           Don't have an account?{' '}
           <Link
             to="/auth/signup"
-            className="text-primary-600 hover:text-primary-700 font-medium"
+            className="text-blue-600 hover:text-blue-700 font-semibold transition-colors"
           >
             Sign up
           </Link>
         </p>
-      </div>
+      </motion.div>
 
       {/* Security Notice */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="flex">
+      <motion.div 
+        className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/50 rounded-2xl p-6 backdrop-blur-sm"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.4 }}
+      >
+        <div className="flex items-start">
           <div className="flex-shrink-0">
-            <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-            </svg>
+            <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+              <Shield className="h-5 w-5 text-blue-600" />
+            </div>
           </div>
-          <div className="ml-3">
+          <div className="ml-4">
+            <h4 className="text-sm font-semibold text-blue-900 mb-1">
+              Secure Verification
+            </h4>
             <p className="text-sm text-blue-700">
               We'll send you a verification code to confirm your identity. 
               Standard messaging rates may apply.
             </p>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   )
 }
