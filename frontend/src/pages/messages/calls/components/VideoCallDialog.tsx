@@ -3,6 +3,7 @@ import { BaseCallDialog } from './BaseCallDialog';
 
 type VideoCallDialogProps = {
   isOpen: boolean;
+  onClose: () => void;
   recipientName: string;
   recipientAvatar?: string;
   onToggleMute: () => void;
@@ -21,6 +22,7 @@ type VideoCallDialogProps = {
 
 export function VideoCallDialog({
   isOpen,
+  onClose,
   recipientName,
   recipientAvatar,
   onToggleMute,
@@ -54,6 +56,7 @@ export function VideoCallDialog({
   return (
     <BaseCallDialog
       isOpen={isOpen}
+      onClose={onClose}
       recipientName={recipientName}
       recipientAvatar={recipientAvatar}
       onToggleMute={onToggleMute}

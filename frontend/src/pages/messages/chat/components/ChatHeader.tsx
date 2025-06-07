@@ -60,6 +60,7 @@ export const ChatHeader = ({ className = '' }: ChatHeaderProps) => {
   // State for call dialog
   const [isCallDialogOpen, setIsCallDialogOpen] = useState(false);
   const [targetUserId, setTargetUserId] = useState<string | null>(null);
+  const [callType, setCallType] = useState<'audio' | 'video' | null>(null);
 
   // Handle call start from dialog
   const handleCallStart = useCallback(async (type: 'audio' | 'video') => {
@@ -81,7 +82,7 @@ export const ChatHeader = ({ className = '' }: ChatHeaderProps) => {
   }, [currentConversation, socket, initiateCall, targetUserId]);
 
   // Open call dialog and set target user
-  const openCallDialog = useCallback(() => {
+  const openCallDialog = useCallback((type: 'audio' | 'video') => {
     if (!currentConversation) {
       toast.error('Please select a conversation first');
       return;
@@ -101,6 +102,7 @@ export const ChatHeader = ({ className = '' }: ChatHeaderProps) => {
       return;
     }
 
+    setCallType(type);
     setTargetUserId(otherMember.userId);
     setIsCallDialogOpen(true);
   }, [currentConversation]);
@@ -143,7 +145,7 @@ export const ChatHeader = ({ className = '' }: ChatHeaderProps) => {
       <div className="flex items-center space-x-4">
         <div className="flex items-center space-x-2">
           <button
-            onClick={openCallDialog}
+            onClick={() => openCallDialog('audio')}
             disabled={!currentConversation || !socket}
             className={cn(
               'p-2 rounded-full transition-colors',
@@ -157,7 +159,7 @@ export const ChatHeader = ({ className = '' }: ChatHeaderProps) => {
             <Phone className="w-5 h-5" />
           </button>
           <button
-            onClick={openCallDialog}
+            onClick={() => openCallDialog('video')}
             disabled={!currentConversation || !socket}
             className={cn(
               'p-2 rounded-full transition-colors',
@@ -172,13 +174,17 @@ export const ChatHeader = ({ className = '' }: ChatHeaderProps) => {
           </button>
         </div>
 
-        {targetUserId && (
+        {targetUserId && callType && (
           <CallDialog
             isOpen={isCallDialogOpen}
-            onClose={() => setIsCallDialogOpen(false)}
+            onClose={() => {
+              setIsCallDialogOpen(false);
+              setCallType(null);
+            }}
             onCallStart={handleCallStart}
             recipientName={currentConversation?.displayName || 'Unknown User'}
             recipientAvatar={currentConversation?.displayPhoto}
+            callType={callType}
           />
         )}
 

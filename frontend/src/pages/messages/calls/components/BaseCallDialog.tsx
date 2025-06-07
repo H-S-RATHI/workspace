@@ -5,6 +5,7 @@ import { Minimize2, Maximize2, Video, VideoOff, Mic, MicOff, Phone, Volume2, Vol
 
 type BaseCallDialogProps = {
   isOpen: boolean;
+  onClose: () => void;
   recipientName: string;
   recipientAvatar?: string;
   onToggleMute: () => void;
@@ -23,6 +24,7 @@ type BaseCallDialogProps = {
 
 export function BaseCallDialog({
   isOpen,
+  onClose,
   recipientName,
   recipientAvatar,
   onToggleMute,
@@ -35,28 +37,46 @@ export function BaseCallDialog({
   isSpeakerOn,
   isFullscreen,
   callDuration,
-
   callType,
   children,
 }: BaseCallDialogProps) {
   // Common UI and logic for both call types
+  const handleDialogClose = () => {
+    onEndCall();
+    onClose();
+  };
+
   return (
-    <div className={`fixed inset-0 z-50 ${!isOpen ? 'hidden' : ''}`}>
-      <div className="absolute inset-0 bg-black/80 flex flex-col">
+    <div 
+      className={`fixed inset-0 z-50 flex items-center justify-center bg-black/80 transition-opacity ${isOpen ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+      onClick={handleDialogClose}
+    >
+      <div 
+        className={`relative flex flex-col w-full h-full max-w-4xl bg-white dark:bg-gray-900 rounded-lg overflow-hidden transition-all duration-300 ${isFullscreen ? 'w-screen h-screen max-w-none rounded-none' : 'max-h-[90vh]'}`}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 bg-black/50 text-white">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center">
+            <div className="relative">
               {recipientAvatar ? (
-                <img src={recipientAvatar} alt={recipientName} className="w-full h-full rounded-full" />
+                <img
+                  src={recipientAvatar}
+                  alt={recipientName}
+                  className="w-10 h-10 rounded-full object-cover"
+                />
               ) : (
-                <span className="text-white">{recipientName[0]?.toUpperCase()}</span>
+                <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                  <span className="text-gray-600 dark:text-gray-300 font-medium">
+                    {recipientName.charAt(0).toUpperCase()}
+                  </span>
+                </div>
               )}
             </div>
             <div>
-              <h3 className="font-medium">{recipientName}</h3>
-              <p className="text-sm text-gray-300">
-                {callType === 'video' ? 'Video Call' : 'Voice Call'} • {formatDuration(callDuration)}
+              <h3 className="font-medium text-gray-900 dark:text-white">{recipientName}</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {formatDuration(callDuration)}
               </p>
             </div>
           </div>
@@ -65,12 +85,12 @@ export function BaseCallDialog({
               variant="ghost"
               size="icon"
               onClick={onToggleFullscreen}
-              className="text-white hover:bg-white/10"
+              className="text-gray-700 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-800"
             >
               {isFullscreen ? (
-                <Minimize2 className="w-5 h-5" />
+                <Minimize2 className="h-5 w-5" />
               ) : (
-                <Maximize2 className="w-5 h-5" />
+                <Maximize2 className="h-5 w-5" />
               )}
             </Button>
           </div>

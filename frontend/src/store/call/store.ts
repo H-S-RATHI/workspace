@@ -205,9 +205,14 @@ export const useCallStore = create<CallStoreState>((set: StoreSet, get: StoreGet
     });
     
     // Notify the other party that the call has ended
-    useSocketStore.getState().emit(SOCKET_EVENTS.CALL_ENDED, {
-      callId,
-      reason: 'Call ended'
-    });
+    const socket = useSocketStore.getState().socket;
+    if (socket?.connected) {
+      socket.emit(SOCKET_EVENTS.CALL_ENDED, {
+        callId,
+        reason: 'Call ended'
+      });
+    } else {
+      console.warn('[CallStore][endCall] Cannot send CALL_ENDED: Socket not connected');
+    }
   },
 }));

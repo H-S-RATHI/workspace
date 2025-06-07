@@ -8,6 +8,7 @@ import TopBar from '../ui/TopBar';
 import { useAuthStore } from '../../store/authStore';
 import { useCall } from '../../pages/messages/calls/hooks/useCall';
 import { colors, getSectionColors } from '../../styles/colors';
+import { CallDialog } from '../../pages/messages/calls/components/CallDialog';
 
 const MainLayout = () => {
   const location = useLocation();
@@ -92,16 +93,22 @@ const MainLayout = () => {
         </div>
       </div>
 
-      {/* Video Call Modal */}
-      {isCallModalOpen && activeCall && (
-        <VideoCall
-          callId={activeCall.callId}
-          isIncoming={activeCall.isIncoming}
-          otherParty={activeCall.otherParty}
-          callType={activeCall.callType}
-          onCallEnd={endCall}
-        />
-      )}
+      {/* Call Dialog */}
+      <CallDialog
+        isOpen={!!activeCall && isCallModalOpen}
+        onClose={() => {
+          if (activeCall) {
+            endCall(activeCall.callId);
+          }
+        }}
+        onCallStart={(type) => {
+          // Handle call start if needed
+          console.log('Starting call of type:', type);
+        }}
+        recipientName={activeCall?.otherParty?.fullName || 'Unknown User'}
+        recipientAvatar={activeCall?.otherParty?.profilePhotoUrl}
+        callType={activeCall?.callType}
+      />
     </div>
   );
 };

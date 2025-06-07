@@ -3,6 +3,7 @@ import { User } from 'lucide-react';
 
 type VoiceCallDialogProps = {
   isOpen: boolean;
+  onClose: () => void;
   recipientName: string;
   recipientAvatar?: string;
   onToggleMute: () => void;
@@ -17,6 +18,7 @@ type VoiceCallDialogProps = {
 
 export function VoiceCallDialog({
   isOpen,
+  onClose,
   recipientName,
   recipientAvatar,
   onToggleMute,
@@ -31,6 +33,7 @@ export function VoiceCallDialog({
   return (
     <BaseCallDialog
       isOpen={isOpen}
+      onClose={onClose}
       recipientName={recipientName}
       recipientAvatar={recipientAvatar}
       onToggleMute={onToggleMute}
