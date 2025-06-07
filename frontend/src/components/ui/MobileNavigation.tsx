@@ -67,28 +67,7 @@ const MobileNavigation = () => {
       {/* Main Navigation Container */}
       <div className="h-20 flex items-center justify-around px-2 relative">
         {/* Floating Active Background */}
-        <AnimatePresence>
-          {tabs.map((tab) => {
-            const active = isTabActive(tab.path);
-            if (!active) return null;
-            
-            return (
-              <motion.div
-                key={`bg-${tab.id}`}
-                layoutId="mobile-active-bg"
-                className={`absolute w-16 h-16 bg-gradient-to-br ${tab.gradient} rounded-2xl opacity-10`}
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 0.1 }}
-                exit={{ scale: 0, opacity: 0 }}
-                transition={{ type: 'spring', bounce: 0.3, duration: 0.4 }}
-                style={{
-                  left: `${tabs.findIndex(t => t.id === tab.id) * 25 + 12.5}%`,
-                  transform: 'translateX(-50%)',
-                }}
-              />
-            );
-          })}
-        </AnimatePresence>
+
         
         {tabs.map((tab, index) => {
           const Icon = tab.icon;

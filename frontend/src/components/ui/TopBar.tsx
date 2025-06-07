@@ -163,7 +163,8 @@ const TopBar = ({ currentTab, isMobile }: TopBarProps) => {
                 {isActive && (
                   <motion.div
                     layoutId="mobile-sub-indicator"
-                    className={`absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-12 h-1 ${colors.activeIndicator} rounded-full`}
+                    style={{ left: '37%' }}
+                    className={`absolute -bottom-1 transform -translate-x-1/2 w-12 h-1 ${colors.activeIndicator} rounded-full`}
                     initial={{ scale: 0, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ type: 'spring', bounce: 0.3, duration: 0.4 }}
