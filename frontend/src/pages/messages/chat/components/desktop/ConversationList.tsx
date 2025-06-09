@@ -2,34 +2,32 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Search, Plus } from 'lucide-react';
 import debounce from 'lodash.debounce';
 import { toast } from 'react-hot-toast';
-import { useChatStore } from '../../../../store/chatStore';
+import { useChatStore } from '../../../../../store/chatStore';
 import { useAuthStore } from '@/store/authStore';
 
-interface MobileConversationListProps {
-  onSelectConversation: () => void
-}
-
-const MobileConversationList = ({ onSelectConversation }: MobileConversationListProps) => {
+export const ConversationList = () => {
   const { 
     conversations, 
-    currentConversation,
+    currentConversation, 
     fetchConversations, 
     selectConversation,
     searchUsers,
     createConversation,
     isLoading,
     error
-  } = useChatStore();
+  } = useChatStore()
   
   const currentUserId = useAuthStore(state => state.user?.userId);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [isRetrying, setIsRetrying] = useState(false);
+  
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [isRetrying, setIsRetrying] = useState(false)
   
   const isMounted = useRef(true);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const lastFetchTime = useRef(0);
   const MIN_FETCH_INTERVAL = 30000; // 30 seconds minimum between fetches
-  
+
   // Debounced fetch conversations
   const debouncedFetchConversations = useCallback(
     debounce(async (force = false) => {
@@ -48,19 +46,25 @@ const MobileConversationList = ({ onSelectConversation }: MobileConversationList
         lastFetchTime.current = Date.now();
       } catch (error) {
         console.error('Failed to load conversations:', error);
+        // Don't update state if component is unmounted
         if (!isMounted.current) return;
       } finally {
-        // Cleanup handled by isMounted ref
+        if (isMounted.current) {
+          setIsInitialLoad(false);
+        }
       }
-    }, 500),
+    }, 500), // Debounce time of 500ms
     [fetchConversations]
   );
 
   // Initial load and setup
   useEffect(() => {
     isMounted.current = true;
+    
+    // Initial fetch
     debouncedFetchConversations();
     
+    // Set up visibility change listener to refresh when tab becomes visible
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         debouncedFetchConversations();
@@ -69,6 +73,7 @@ const MobileConversationList = ({ onSelectConversation }: MobileConversationList
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
     
+    // Cleanup
     return () => {
       isMounted.current = false;
       document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -95,11 +100,10 @@ const MobileConversationList = ({ onSelectConversation }: MobileConversationList
           setSearchResults([]);
         }
       }
-    }, 300),
+    }, 300), // 300ms debounce
     [searchUsers]
   );
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       isMounted.current = false;
@@ -116,105 +120,106 @@ const MobileConversationList = ({ onSelectConversation }: MobileConversationList
   };
 
   // Handle search form submit
-  const handleSearchSubmit = (e: React.FormEvent) => {
+  const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     debouncedSearch(searchQuery);
   };
-  
+
   // Check if a conversation already exists with the given user
   const findExistingConversation = (userId: string) => {
-    if (!currentUserId) return null;
-    
-    return conversations.find(conv => {
-      // Skip group chats
-      if (conv.isGroup) return false;
-      
-      const memberIds = conv.members?.map(m => m.userId) || [];
-      
-      // For self-chat (talking to yourself)
-      if (userId === currentUserId) {
-        return memberIds.length === 1 && memberIds[0] === currentUserId;
-      }
-      
-      // For conversations with other users
-      return memberIds.includes(userId) && memberIds.includes(currentUserId);
-    });
+    return conversations.find(conv => 
+      !conv.isGroup && 
+      conv.members?.some(member => member.userId === userId)
+    );
   };
 
   // Start a new conversation or navigate to existing one
   const startNewChat = async (userId: string) => {
-    if (!currentUserId) {
-      toast.error('You need to be logged in to start a chat');
-      return;
-    }
-
     try {
-      // For self-chat, ensure we're only including the current user
-      const participantIds = userId === currentUserId ? [currentUserId] : [userId];
-      
       // Check if conversation already exists
       const existingConv = findExistingConversation(userId);
       
       if (existingConv) {
         // If conversation exists, select it
-        await selectConversation(existingConv.convoId);
+        selectConversation(existingConv.convoId);
       } else {
         // Otherwise, create a new conversation
         const conversation = await createConversation({
-          participantIds,
+          participantIds: [userId],
           isGroup: false
         });
         
         if (conversation) {
-          await selectConversation(conversation.convoId);
-        } else {
-          throw new Error('Failed to create conversation');
+          selectConversation(conversation.convoId);
         }
       }
       
-      // Clear search and close the mobile panel
+      // Clear search
       setSearchQuery('');
       setSearchResults([]);
-      onSelectConversation();
     } catch (error) {
       console.error('Error starting new chat:', error);
       toast.error('Failed to start chat. Please try again.');
     }
   }
 
-  const handleConversationSelect = async (convoId: string) => {
-    try {
-      await selectConversation(convoId);
-      onSelectConversation();
-    } catch (error) {
-      console.error('Error selecting conversation:', error);
-      toast.error('Failed to open conversation');
-    }
-  }
 
   return (
-    <div className="h-full bg-white flex flex-col">
+    <div className="w-80 border-r border-gray-200 bg-white flex flex-col shadow-sm h-full">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4">
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-black p-4">
+
+        
         {/* Search bar */}
-        <form onSubmit={handleSearchSubmit} className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-5 w-5 text-gray-400" />
-          </div>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={handleSearchChange}
-            placeholder="Search or start new chat"
-            className="block w-full pl-10 pr-3 py-2 border-0 rounded-xl bg-white/20 backdrop-blur-sm placeholder-white/70 text-white focus:outline-none focus:ring-2 focus:ring-white/30"
-            aria-label="Search conversations or users"
-          />
-        </form>
+        <div className="relative">
+          <form onSubmit={handleSearch}>
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search or start new chat"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              value={searchQuery}
+              onChange={handleSearchChange}
+              aria-label="Search conversations or users"
+            />
+          </form>
+        </div>
       </div>
+      
+      {/* Search results */}
+      {searchResults.length > 0 && (
+        <div className="border-b border-gray-200 bg-blue-50">
+          <div className="px-4 py-2 text-xs font-medium text-blue-600 uppercase tracking-wider">
+            Search Results
+          </div>
+          <div className="overflow-y-auto max-h-64">
+            {searchResults.map((user) => (
+              <div 
+                key={user.userId}
+                onClick={() => startNewChat(user.userId)}
+                className="px-4 py-3 hover:bg-blue-100 cursor-pointer flex items-center transition-colors"
+              >
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mr-3">
+                  <span className="text-white font-medium">
+                    {user.fullName?.charAt(0).toUpperCase() || 'U'}
+                  </span>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900">{user.fullName || 'Unknown User'}</p>
+                  <p className="text-xs text-gray-500">@{user.username}</p>
+                </div>
+                <div className="text-blue-600">
+                  <Plus size={16} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       
       {/* Error state */}
       {error && (
-        <div className="p-3 bg-red-50 text-red-600 text-sm flex items-center justify-between">
+        <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg text-red-600 dark:text-red-400 text-sm flex items-center justify-between">
           <span>{error}</span>
           <button 
             onClick={async () => {
@@ -226,7 +231,7 @@ const MobileConversationList = ({ onSelectConversation }: MobileConversationList
               }
             }}
             disabled={isLoading || isRetrying}
-            className="ml-2 px-3 py-1 bg-white border border-red-200 rounded-md text-xs font-medium hover:bg-red-50 transition-colors disabled:opacity-50"
+            className="ml-2 px-3 py-1 bg-white dark:bg-gray-800 border border-red-200 dark:border-red-800 rounded-md text-xs font-medium hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors disabled:opacity-50"
           >
             {isRetrying ? 'Retrying...' : 'Retry'}
           </button>
@@ -237,12 +242,12 @@ const MobileConversationList = ({ onSelectConversation }: MobileConversationList
       {isLoading && conversations.length === 0 && (
         <div className="mt-4 space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="p-3 rounded-lg bg-gray-100 animate-pulse">
+            <div key={i} className="p-3 rounded-lg bg-gray-100 dark:bg-gray-800 animate-pulse">
               <div className="flex items-center">
-                <div className="w-10 h-10 rounded-full bg-gray-200"></div>
+                <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700"></div>
                 <div className="ml-3 space-y-2">
-                  <div className="h-4 bg-gray-200 rounded w-32"></div>
-                  <div className="h-3 bg-gray-200 rounded w-24"></div>
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32"></div>
+                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
                 </div>
               </div>
             </div>
@@ -250,81 +255,10 @@ const MobileConversationList = ({ onSelectConversation }: MobileConversationList
         </div>
       )}
       
-      {/* Search results */}
-      {searchQuery.trim() && searchResults.length > 0 && (
-        <div className="border-b border-gray-200 bg-blue-50">
-          <div className="px-4 py-2 text-xs font-medium text-blue-600 uppercase tracking-wider">
-            Search Results
-          </div>
-          <div className="overflow-y-auto max-h-64">
-            {searchResults.map((user) => {
-              const isCurrentUser = user.userId === currentUserId;
-              const existingConvo = findExistingConversation(user.userId);
-              const displayName = isCurrentUser ? 'Your Notes' : user.fullName || 'Unknown User';
-              const username = isCurrentUser ? 'notes' : user.username;
-              
-              return (
-                <div 
-                  key={user.userId}
-                  onClick={() => {
-                    if (existingConvo) {
-                      handleConversationSelect(existingConvo.convoId);
-                    } else {
-                      startNewChat(user.userId);
-                    }
-                  }}
-                  className="px-4 py-3 hover:bg-blue-100 cursor-pointer flex items-center"
-                >
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center mr-3 flex-shrink-0 ${
-                    isCurrentUser 
-                      ? 'bg-gradient-to-br from-purple-500 to-pink-600'
-                      : 'bg-gradient-to-br from-blue-500 to-indigo-600'
-                  }`}>
-                    {user.profilePhotoUrl && !isCurrentUser ? (
-                      <img 
-                        src={user.profilePhotoUrl} 
-                        alt={displayName} 
-                        className="w-full h-full rounded-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-white font-semibold text-lg">
-                        {isCurrentUser ? 'Y' : (user.fullName?.charAt(0).toUpperCase() || 'U')}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center">
-                      <p className="text-sm font-medium text-gray-900 truncate">
-                        {displayName}
-                      </p>
-                      {existingConvo && (
-                        <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
-                          {isCurrentUser ? 'Your Notes' : 'Chat exists'}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-gray-500 truncate">
-                      @{username}
-                    </p>
-                  </div>
-                  <div className="text-blue-600 flex-shrink-0">
-                    {existingConvo ? (
-                      <span className="text-xs text-gray-500">Open</span>
-                    ) : (
-                      <Plus size={20} />
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-      
       {/* Conversations list */}
       <div className="flex-1 overflow-y-auto">
         {!isLoading && error && conversations.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
             Failed to load conversations. Please try again later.
           </div>
         ) : conversations.length === 0 ? (
@@ -340,13 +274,13 @@ const MobileConversationList = ({ onSelectConversation }: MobileConversationList
             {conversations.map((conversation) => (
               <div 
                 key={conversation.convoId}
-                onClick={() => handleConversationSelect(conversation.convoId)}
+                onClick={() => selectConversation(conversation.convoId)}
                 className={`px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors ${
                   currentConversation?.convoId === conversation.convoId ? 'bg-blue-50 border-r-4 border-blue-500' : ''
                 }`}
               >
                 <div className="flex items-center">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mr-3 flex-shrink-0">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mr-3">
                     <span className="text-white font-medium">
                       {conversation.displayName?.charAt(0).toUpperCase() || 'C'}
                     </span>
@@ -355,8 +289,8 @@ const MobileConversationList = ({ onSelectConversation }: MobileConversationList
                     <div className="flex justify-between items-start">
                       <p className="text-sm font-medium text-gray-900 truncate">
                         {conversation.members?.length === 1 && conversation.members[0].userId === currentUserId 
-                          ? 'You' 
-                          : conversation.displayName}
+                        ? 'You' 
+                        : conversation.displayName}
                       </p>
                       <span className="text-xs text-gray-500 ml-2 flex-shrink-0">
                         {new Date(conversation.lastMessageAt).toLocaleTimeString([], { 
@@ -385,5 +319,3 @@ const MobileConversationList = ({ onSelectConversation }: MobileConversationList
     </div>
   )
 }
-
-export default MobileConversationList

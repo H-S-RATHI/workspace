@@ -5,7 +5,7 @@ import { useCallStore } from '@/store/call/store';
 import { useSocketStore } from '@/store/socket/store';
 import { useChatStore } from '@/store/chatStore';
 import { useAuthStore } from '@/store/authStore';
-import { CallDialog } from '../../calls/components/CallDialog';
+import { CallDialog } from '../../../calls/components/CallDialog';
 
 // Utility function to merge class names
 function cn(...classes: (string | boolean | undefined)[]) {

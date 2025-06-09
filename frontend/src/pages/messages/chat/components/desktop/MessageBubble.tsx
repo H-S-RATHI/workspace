@@ -2,8 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { Check, CheckCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
-import type { Message } from '../../../../types/chat';
-import { cn } from './utils';
+import type { Message } from '../../../../../types/chat';
+import { cn } from '../utils';
 
 interface MessageBubbleProps {
   message: Message;

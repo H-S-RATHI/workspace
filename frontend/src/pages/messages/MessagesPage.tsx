@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
-import ChatTab from './chat/components/ChatTab'
+import ChatTab from './chat/components/desktop/ChatTab'
 import CallsTab from './calls/components/CallsTab'
 import StatusTab from './status/components/StatusTab'
 

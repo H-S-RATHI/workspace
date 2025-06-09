@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuthStore } from '../../../../store/authStore'
+import { useAuthStore } from '../../../../../store/authStore'
 import { ConversationList } from './ConversationList'
 import ChatWindow from './ChatWindow'
-import MobileConversationList from './MobileConversationList'
-import MobileChatWindow from './MobileChatWindow'
-import { useChatStore } from '../../../../store/chatStore'
+import MobileConversationList from '../mobile/MobileConversationList'
+import MobileChatWindow from '../mobile/MobileChatWindow'
+import { useChatStore } from '../../../../../store/chatStore'
 
 const ChatTab = () => {
   const { isAuthenticated } = useAuthStore()
