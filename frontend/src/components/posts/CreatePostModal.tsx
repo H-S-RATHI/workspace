@@ -63,8 +63,8 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({
       ));
 
       const endpoint = mediaFile.type === 'image' 
-        ? '/api/v1/media/upload/image'
-        : '/api/v1/media/upload/video';
+        ? '/media/upload/image'
+        : '/media/upload/video';
 
       const response = await api.post(endpoint, formData, {
         headers: {
