@@ -35,7 +35,7 @@ interface PostCardProps {
   avatar: string;
   name: string;
   username: string;
-  media?: string;
+  mediaUrls?: string[];
   caption: string;
   likes?: number;
   comments?: number;
@@ -219,7 +219,7 @@ export const PostCard = ({
   avatar,
   name,
   username,
-  media,
+  mediaUrls = [],
   caption,
   likes = 0,
   comments = 0,
@@ -230,6 +230,15 @@ export const PostCard = ({
   onComment,
   onShare
 }: PostCardProps) => {
+  console.log('PostCard props:', {
+    name,
+    username,
+    mediaUrls,
+    caption,
+    likes,
+    comments,
+    timestamp
+  });
   return (
     <Card className={clsx('overflow-hidden', className)}>
       {/* Header */}
@@ -248,14 +257,29 @@ export const PostCard = ({
       </div>
 
       {/* Media */}
-      {media && (
+      {mediaUrls.length > 0 && (
         <div className="relative">
-          <img 
-            src={media} 
-            alt="Post content"
-            className="w-full max-h-96 object-cover"
-            style={{ aspectRatio: '4/5', maxAspectRatio: '4/5' }}
-          />
+          {mediaUrls[0].includes('.mp4') || mediaUrls[0].includes('video') ? (
+            <video
+              src={mediaUrls[0]}
+              className="w-full max-h-96 object-cover"
+              style={{ aspectRatio: '4/5', maxAspectRatio: '4/5' }}
+              controls
+            />
+          ) : (
+            <img 
+              src={mediaUrls[0]} 
+              alt="Post content"
+              className="w-full max-h-96 object-cover"
+              style={{ aspectRatio: '4/5', maxAspectRatio: '4/5' }}
+            />
+          )}
+          {/* Show media count if more than 1 */}
+          {mediaUrls.length > 1 && (
+            <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full">
+              +{mediaUrls.length - 1}
+            </div>
+          )}
         </div>
       )}
 

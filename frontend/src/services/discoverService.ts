@@ -7,16 +7,20 @@ export interface Post {
   fullName: string
   profilePhotoUrl?: string
   content?: string
-  mediaUrl?: string
-  mediaType?: 'IMAGE' | 'VIDEO'
-  hashtags?: string[]
+  mediaUrls: string[]
+  mediaType?: 'IMAGE' | 'VIDEO' | 'CAROUSEL'
+  hashtags: string[]
+  location?: string
+  likesCount: number
+  commentsCount: number
+  isLiked: boolean
+  isSaved?: boolean
   mentions?: string[]
   isDeleted: boolean
   createdAt: string
   updatedAt: string
   likes: number
   comments: number
-  isLiked?: boolean
 }
 
 export interface Reel {
@@ -75,7 +79,7 @@ export interface SearchResult {
 class DiscoverService {
   // Posts
   async getPosts(page = 1, limit = 20) {
-    const response = await apiClient.get('/discover/posts', {
+    const response = await apiClient.get('/discover/feed', {
       params: { page, limit }
     })
     return response.data
@@ -182,8 +186,8 @@ class DiscoverService {
   }
 
   async getFollowingFeed(page = 1, limit = 20) {
-    const response = await apiClient.get('/discover/feed/following', {
-      params: { page, limit }
+    const response = await apiClient.get('/discover/feed', {
+      params: { page, limit, type: 'following' }
     })
     return response.data
   }

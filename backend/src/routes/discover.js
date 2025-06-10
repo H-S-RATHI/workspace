@@ -9,84 +9,242 @@ const { createImageVariants } = require('../config/cloudinary');
 
 const router = express.Router();
 
-// Get feed posts
-router.get('/feed', optionalAuth, async (req, res) => {
+// Test database connection and table structure
+router.get('/test-db', async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
-    const offset = (page - 1) * limit;
-    const { type = 'for_you' } = req.query; // 'following' or 'for_you'
-
-    let query = db('posts')
-      .join('users', 'posts.userId', 'users.userId')
-      .where('users.isDeleted', false)
-      .where('posts.isDeleted', false);
-
-    // Filter by following if user is authenticated and requests following feed
-    if (req.user && type === 'following') {
-      const followingIds = await db('followers')
-        .where('followerUserId', req.user.userId)
-        .pluck('userId');
-      
-      if (followingIds.length > 0) {
-        query = query.whereIn('posts.userId', followingIds);
-      } else {
-        // If not following anyone, return empty array
-        return res.json({
-          success: true,
-          posts: [],
-          pagination: { page, limit, hasMore: false },
-        });
-      }
-    }
-
-    const posts = await query
-      .select(
-        'posts.postId',
-        'posts.userId',
-        'posts.postType',
-        'posts.caption',
-        'posts.mediaUrls',
-        'posts.hashtags',
-        'posts.location',
-        'posts.createdAt',
-        'users.username',
-        'users.fullName',
-        'users.profilePhotoUrl',
-        'users.isBusinessAccount'
-      )
-      .orderBy('posts.createdAt', 'desc')
-      .limit(limit)
-      .offset(offset);
-
-    // Get engagement data for each post
-    const postsWithEngagement = await Promise.all(
-      posts.map(async (post) => {
-        const [likesCount, commentsCount] = await Promise.all([
-          db('post_likes').where({ postId: post.postId }).count('* as count').first(),
-          db('post_comments').where({ postId: post.postId }).count('* as count').first(),
-        ]);
-
-        // Check if current user liked the post
-        let isLiked = false;
-        if (req.user) {
-          const userLike = await db('post_likes')
-            .where({ postId: post.postId, userId: req.user.userId })
-            .first();
-          isLiked = !!userLike;
+    // Test connection
+    await db.raw('SELECT 1');
+    
+    // Check if required tables exist
+    const requiredTables = ['users', 'posts', 'post_likes', 'post_comments', 'followers'];
+    const tableChecks = await Promise.all(
+      requiredTables.map(async (table) => {
+        try {
+          await db.raw(`SELECT 1 FROM ${table} LIMIT 1`);
+          return { table, exists: true };
+        } catch (e) {
+          return { table, exists: false, error: e.message };
         }
-
-        return {
-          ...post,
-          mediaUrls: post.mediaUrls ? JSON.parse(post.mediaUrls) : [],
-          hashtags: post.hashtags ? JSON.parse(post.hashtags) : [],
-          likesCount: parseInt(likesCount.count),
-          commentsCount: parseInt(commentsCount.count),
-          isLiked,
-        };
       })
     );
 
+    // Check for any missing tables
+    const missingTables = tableChecks.filter(t => !t.exists);
+    
+    if (missingTables.length > 0) {
+      return res.status(500).json({
+        success: false,
+        message: 'Some required tables are missing',
+        missingTables: missingTables.map(t => t.table),
+        details: missingTables
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Database connection and tables verified',
+      tables: tableChecks
+    });
+  } catch (error) {
+    console.error('Database test error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Database connection failed',
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+// Get feed posts
+router.get('/feed', optionalAuth, async (req, res, next) => {
+  try {
+    logger.info('Feed request received', {
+      query: req.query,
+      user: req.user ? req.user.userId : 'anonymous'
+    });
+    
+    // Validate query parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = (page - 1) * limit;
+    const { type = 'for_you' } = req.query;
+
+    if (isNaN(page) || isNaN(limit) || page < 1 || limit < 1) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid pagination parameters',
+        details: {
+          page: 'Must be a positive integer',
+          limit: 'Must be a positive integer'
+        }
+      });
+    }
+
+    // Start building the query
+    let query;
+    try {
+      query = db('posts')
+        .join('users', 'posts.userId', 'users.userId')
+        .where('users.isDeleted', false)
+        .where('posts.isDeleted', false);
+    } catch (dbError) {
+      logger.error('Database query initialization failed:', dbError);
+      throw new Error('Failed to initialize database query');
+    }
+
+    // Filter by following if user is authenticated and requests following feed
+    if (req.user && type === 'following') {
+      try {
+        const followingIds = await db('followers')
+          .where('followerUserId', req.user.userId)
+          .pluck('userId');
+        
+        if (followingIds.length > 0) {
+          query = query.whereIn('posts.userId', followingIds);
+        } else {
+          // If not following anyone, return empty array
+          return res.json({
+            success: true,
+            posts: [],
+            pagination: { page, limit, hasMore: false },
+          });
+        }
+      } catch (followError) {
+        logger.error('Failed to fetch following users:', followError);
+        throw new Error('Failed to process following filter');
+      }
+    }
+
+    // Log the generated SQL query
+    let posts;
+    try {
+      const sql = query.clone().toSQL().toNative();
+      logger.debug('Feed query:', {
+        sql: sql.sql,
+        bindings: sql.bindings,
+        limit,
+        offset
+      });
+
+      posts = await query
+        .clone()
+        .select(
+          'posts.postId',
+          'posts.userId',
+          'posts.postType',
+          'posts.caption',
+          'posts.mediaUrls',
+          'posts.hashtags',
+          'posts.location',
+          'posts.createdAt',
+          'users.username',
+          'users.fullName',
+          'users.profilePhotoUrl',
+          'users.isBusinessAccount'
+        )
+        .orderBy('posts.createdAt', 'desc')
+        .limit(limit)
+        .offset(offset);
+      
+      logger.debug(`Found ${posts.length} posts`);
+    } catch (queryError) {
+      logger.error('Database query failed:', {
+        error: queryError.message,
+        stack: queryError.stack,
+        query: queryError.query,
+        parameters: queryError.parameters
+      });
+      throw new Error('Failed to fetch posts from database');
+    }
+
+    // Get engagement data for each post
+    let postsWithEngagement;
+    try {
+      postsWithEngagement = await Promise.all(
+        posts.map(async (post, index) => {
+          try {
+            logger.debug(`Processing post ${index + 1}/${posts.length}`, { postId: post.postId });
+            
+            // Get likes and comments count
+            const [likesCount, commentsCount] = await Promise.all([
+              db('post_likes').where({ postId: post.postId }).count('* as count').first()
+                .catch(e => {
+                  logger.error(`Error counting likes for post ${post.postId}:`, e);
+                  return { count: '0' };
+                }),
+              db('post_comments').where({ postId: post.postId }).count('* as count').first()
+                .catch(e => {
+                  logger.error(`Error counting comments for post ${post.postId}:`, e);
+                  return { count: '0' };
+                })
+            ]);
+
+            // Check if current user liked the post
+            let isLiked = false;
+            if (req.user) {
+              try {
+                const userLike = await db('post_likes')
+                  .where({ postId: post.postId, userId: req.user.userId })
+                  .first();
+                isLiked = !!userLike;
+              } catch (likeError) {
+                logger.error(`Error checking like status for post ${post.postId}:`, likeError);
+                isLiked = false;
+              }
+            }
+
+            // Parse JSON fields safely
+            let mediaUrls = [];
+            let hashtags = [];
+            
+            try {
+              mediaUrls = post.mediaUrls ? JSON.parse(post.mediaUrls) : [];
+            } catch (e) {
+              logger.error(`Invalid mediaUrls JSON for post ${post.postId}:`, e);
+              mediaUrls = [];
+            }
+            
+            try {
+              hashtags = post.hashtags ? JSON.parse(post.hashtags) : [];
+            } catch (e) {
+              logger.error(`Invalid hashtags JSON for post ${post.postId}:`, e);
+              hashtags = [];
+            }
+
+            return {
+              ...post,
+              mediaUrls,
+              hashtags,
+              likesCount: parseInt(likesCount?.count || 0, 10) || 0,
+              commentsCount: parseInt(commentsCount?.count || 0, 10) || 0,
+              isLiked,
+            };
+          } catch (postError) {
+            logger.error(`Error processing post ${post.postId}:`, postError);
+            // Return a minimal post object to prevent breaking the entire feed
+            return {
+              ...post,
+              mediaUrls: [],
+              hashtags: [],
+              likesCount: 0,
+              commentsCount: 0,
+              isLiked: false,
+              _error: 'Error processing post'
+            };
+          }
+        })
+      );
+    } catch (engagementError) {
+      logger.error('Failed to process post engagement data:', engagementError);
+      throw new Error('Failed to process post engagement data');
+    }
+
+    logger.info('Feed request completed successfully', {
+      postCount: postsWithEngagement.length,
+      hasMore: posts.length === limit
+    });
+    
     res.json({
       success: true,
       posts: postsWithEngagement,
@@ -99,11 +257,46 @@ router.get('/feed', optionalAuth, async (req, res) => {
     });
 
   } catch (error) {
-    logger.error('Get feed error:', error);
-    res.status(500).json({
+    const errorId = Date.now().toString(36) + Math.random().toString(36).substr(2);
+    const timestamp = new Date().toISOString();
+    
+    const errorDetails = {
+      errorId,
+      timestamp,
+      message: error.message,
+      stack: error.stack,
+      code: error.code,
+      query: error.query,
+      parameters: error.parameters,
+      sql: error.sql,
+      sqlMessage: error.sqlMessage,
+      sqlState: error.sqlState,
+      request: {
+        url: req.originalUrl,
+        method: req.method,
+        query: req.query,
+        params: req.params,
+        user: req.user ? { id: req.user.userId } : 'anonymous'
+      }
+    };
+    
+    // Log detailed error
+    console.error(`[${timestamp}] [ERROR] [${errorId}] Detailed feed error:`, errorDetails);
+    logger.error(`Get feed error [${errorId}]:`, errorDetails);
+    
+    // Return error response
+    const response = {
       success: false,
       error: 'Failed to get feed',
-    });
+      errorId,
+      timestamp,
+      ...(process.env.NODE_ENV === 'development' && {
+        details: error.message,
+        stack: error.stack
+      })
+    };
+    
+    res.status(500).json(response);
   }
 });
 

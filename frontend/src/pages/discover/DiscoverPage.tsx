@@ -1,11 +1,10 @@
 import { useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Filter, Grid, List, Search, TrendingUp, Heart, MessageCircle, Share, Bookmark } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { Plus, TrendingUp } from 'lucide-react'
 import { PostCard } from '../../components/ui/Card'
 import { Input } from '../../components/ui/Input'
 import { Button } from '../../components/ui/Button'
-import { FloatingActionButton } from '../../components/ui/Button'
 import CreatePostModal from '../../components/posts/CreatePostModal'
 import { discoverService, type Post } from '../../services/discoverService'
 
@@ -22,15 +21,30 @@ const FeedTab = () => {
 
   const loadPosts = async () => {
     try {
-      setLoading(true)
+      setLoading(true);
+      console.log('Fetching posts...');
       const response = feedType === 'following' 
         ? await discoverService.getFollowingFeed()
-        : await discoverService.getFeed()
-      setPosts(response.posts || [])
+        : await discoverService.getFeed();
+      
+      console.log('API Response:', response);
+      
+      if (response?.posts) {
+        console.log('Posts received:', response.posts.map((p: any) => ({
+          postId: p.postId,
+          hasMedia: !!p.mediaUrls?.length,
+          mediaUrls: p.mediaUrls,
+          content: p.content
+        })));
+        setPosts(response.posts);
+      } else {
+        console.warn('No posts in response:', response);
+        setPosts([]);
+      }
     } catch (error) {
-      console.error('Error loading posts:', error)
+      console.error('Error loading posts:', error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
@@ -155,7 +169,7 @@ const FeedTab = () => {
                 avatar={post.profilePhotoUrl || '/api/placeholder/36/36'}
                 name={post.fullName}
                 username={post.username}
-                media={post.mediaUrl}
+                mediaUrls={post.mediaUrls}
                 caption={post.content || ''}
                 likes={post.likes}
                 comments={post.comments}
@@ -360,7 +374,7 @@ const SearchTab = () => {
                         avatar={post.profilePhotoUrl || '/api/placeholder/36/36'}
                         name={post.fullName}
                         username={post.username}
-                        media={post.mediaUrl}
+                        mediaUrls={post.mediaUrls}
                         caption={post.content || ''}
                         likes={post.likes}
                         comments={post.comments}

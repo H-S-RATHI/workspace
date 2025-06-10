@@ -153,7 +153,7 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({
         location: location.trim() || undefined,
       };
 
-      const response = await api.post('/api/v1/discover/posts', postData);
+      const response = await api.post('/discover/posts', postData);
       
       toast.success('Post created successfully!');
       onPostCreated?.(response.data.post);
