@@ -199,9 +199,31 @@ router.get('/feed', optionalAuth, async (req, res, next) => {
             let hashtags = [];
             
             try {
-              mediaUrls = post.mediaUrls ? JSON.parse(post.mediaUrls) : [];
+              if (post.mediaUrls) {
+                // Handle case where mediaUrls might already be an array (from a previous bug)
+                if (typeof post.mediaUrls === 'string') {
+                  mediaUrls = JSON.parse(post.mediaUrls);
+                } else if (Array.isArray(post.mediaUrls)) {
+                  mediaUrls = post.mediaUrls;
+                }
+                
+                // Ensure all URLs are strings and not empty
+                mediaUrls = mediaUrls
+                  .map(url => String(url).trim())
+                  .filter(url => url && url.length > 0);
+                
+                logger.debug(`Processed media for post ${post.postId}`, {
+                  raw: post.mediaUrls,
+                  parsed: mediaUrls,
+                  count: mediaUrls.length
+                });
+              }
             } catch (e) {
-              logger.error(`Invalid mediaUrls JSON for post ${post.postId}:`, e);
+              logger.error(`Invalid mediaUrls for post ${post.postId}:`, {
+                error: e.message,
+                mediaUrls: post.mediaUrls,
+                type: typeof post.mediaUrls
+              });
               mediaUrls = [];
             }
             
@@ -318,27 +340,30 @@ router.post('/posts', [
       });
     }
 
-    const {
-      postType,
-      caption,
-      mediaUrls = [],
-      hashtags = [],
-      location,
-    } = req.body;
-
+    // Ensure mediaUrls is always an array
+    const mediaUrls = Array.isArray(req.body.mediaUrls) 
+      ? req.body.mediaUrls 
+      : (req.body.mediaUrls ? [req.body.mediaUrls] : []);
+      
     const postId = uuidv4();
     const postData = {
       postId,
       userId: req.user.userId,
-      postType,
-      caption: caption || null,
-      mediaUrls: JSON.stringify(mediaUrls),
-      hashtags: JSON.stringify(hashtags),
-      location: location || null,
+      postType: req.body.postType,
+      caption: req.body.caption || null,
+      mediaUrls: mediaUrls.length > 0 ? JSON.stringify(mediaUrls) : '[]',
+      hashtags: JSON.stringify(Array.isArray(req.body.hashtags) ? req.body.hashtags : []),
+      location: req.body.location || null,
       isDeleted: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+    
+    logger.info('Creating post with data:', { 
+      userId: req.user.userId,
+      mediaUrls: postData.mediaUrls,
+      mediaCount: mediaUrls.length 
+    });
 
     await db('posts').insert(postData);
 
