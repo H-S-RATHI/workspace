@@ -1,0 +1,13 @@
+dist/
+# ESLint config files should ideally not be linted by themselves if causing issues
+# but often they are fine. Keeping .eslintrc.js out for now.
+.eslintrc.js
+vite.config.ts
+postcss.config.js
+tailwind.config.js
+
+# Other generated files or specific folders to ignore
+# Example:
+# coverage/
+# build/
+# node_modules/ (implicitly ignored by ESLint, but good to be explicit if needed)

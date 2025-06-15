@@ -20,8 +20,11 @@ export const authAPI = {
     return response.data;
   },
 
-  refreshToken: async (refreshToken: string): Promise<RefreshTokenResponse> => {
-    const response = await api.post('/auth/refresh-token', { refreshToken });
+  // refreshToken is now sent as an HttpOnly cookie by the browser
+  refreshToken: async (): Promise<RefreshTokenResponse> => {
+    // The request body can be empty or omitted if the backend doesn't expect anything specific
+    // when using cookie-based refresh token.
+    const response = await api.post('/auth/refresh-token');
     return response.data;
   },
 

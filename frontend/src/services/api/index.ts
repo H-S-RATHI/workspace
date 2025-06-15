@@ -15,23 +15,27 @@ const api: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Ensure cookies are sent with requests
 });
 
-// Request interceptor to add auth token
+// Request interceptor (Authorization header is no longer needed for cookie auth)
+// If you need to support Bearer tokens for other clients, you might keep it,
+// but for pure HttpOnly cookie auth from browser, it's not necessary.
+// For this task, we assume full switch to HttpOnly cookies for the browser client.
+/*
 api.interceptors.request.use(
   (config) => {
-    const { accessToken } = useAuthStore.getState();
-    
-    if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
-    }
-    
+    // const { accessToken } = useAuthStore.getState(); // accessToken no longer stored reliably
+    // if (accessToken) { // This logic is removed
+    //   config.headers.Authorization = `Bearer ${accessToken}`;
+    // }
     return config;
   },
   (error) => {
     return Promise.reject(error);
   }
 );
+*/
 
 // Response interceptor to handle token refresh
 api.interceptors.response.use(
@@ -39,31 +43,32 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     
-    // Prevent infinite loops by checking if this is already a retry or a refresh token request
-    if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url.includes('auth/refresh-token')) {
+    // Prevent infinite loops: check if this is already a retry or a refresh token request.
+    if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url.includes('/auth/refresh-token')) {
       originalRequest._retry = true;
       
       const { refreshAccessToken, logout } = useAuthStore.getState();
       
       try {
-        // Try to refresh the token
-        const success = await refreshAccessToken();
+        // Try to refresh the token. refreshAccessToken in store now calls authAPI.refreshToken()
+        // which relies on HttpOnly cookie being sent by browser.
+        const refreshedSuccessfully = await refreshAccessToken(); // This calls the store action
         
-        if (success) {
-          // Update the auth header with the new token
-          const { accessToken } = useAuthStore.getState();
-          if (accessToken) {
-            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-          }
-          // Retry the original request
-          return api(originalRequest);
+        if (refreshedSuccessfully) {
+          // The new accessToken is now in an HttpOnly cookie, set by the backend.
+          // The originalRequest doesn't need its Authorization header manually updated here
+          // because the browser will automatically send the new cookie.
+          return api(originalRequest); // Retry the original request
         } else {
+          // Refresh failed, logout should have been called by refreshAccessToken store action's failure path
+          // If not, ensure logout is called.
           logout();
           return Promise.reject(new Error('Session expired. Please log in again.'));
         }
       } catch (refreshError) {
-        logout();
-        return Promise.reject(error);
+        // This catch is if refreshAccessToken() itself throws an unhandled error.
+        logout(); // Ensure logout
+        return Promise.reject(error); // Propagate original error or a new specific error
       }
     }
     

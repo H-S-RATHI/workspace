@@ -28,11 +28,14 @@ export const createConnectionActions: ActionCreator = (set, get) => ({
         socketExists: !!state.socket
       });
       
-      if (!accessToken) {
-        const error = new Error('Cannot connect: No access token available');
-        console.error('[SocketStore][connect]', error.message);
-        return reject(error);
-      }
+      // With HttpOnly cookies, accessToken is not directly available in JS.
+      // The browser will send the cookie if withCredentials is true and same-origin policies are met.
+      // The check for accessToken presence here is removed.
+      // if (!accessToken) { // This check is removed
+      //   const error = new Error('Cannot connect: No access token available');
+      //   console.error('[SocketStore][connect]', error.message);
+      //   return reject(error);
+      // }
       
       if (state.socket?.connected) {
         console.log('[SocketStore][connect] Socket already connected, skipping...');
@@ -40,23 +43,25 @@ export const createConnectionActions: ActionCreator = (set, get) => ({
       }
       
       try {
-        // Ensure we have a clean URL without trailing slashes
-        // Remove /api/v1 from the URL if present, as Socket.IO needs to connect to the root
-        let baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:12000').replace(/\/+$/, '')
-        const originalBaseUrl = baseUrl;
-        baseUrl = baseUrl.replace(/\/api\/v1$/, '') // Remove /api/v1 if present
+        let baseUrl = import.meta.env.VITE_SOCKET_URL;
+        let usingDefaultUrl = false;
+
+        if (!baseUrl) {
+          console.warn('[SocketStore][connect] VITE_SOCKET_URL is not defined. Falling back to default: http://localhost:12000');
+          baseUrl = 'http://localhost:12000';
+          usingDefaultUrl = true;
+        }
         
-        console.log('[SocketStore][connect] Preparing connection with:', {
-          originalBaseUrl,
-          cleanBaseUrl: baseUrl,
-          envApiUrl: import.meta.env.VITE_API_URL,
-          usingDefault: !import.meta.env.VITE_API_URL
+        // Ensure we have a clean URL without trailing slashes
+        baseUrl = baseUrl.replace(/\/+$/, '');
+
+        console.log('[SocketStore][connect] Preparing WebSocket connection with:', {
+          targetUrl: baseUrl,
+          envSocketUrl: import.meta.env.VITE_SOCKET_URL,
+          usingDefault: usingDefaultUrl,
         });
         
-        console.log('Initializing socket connection to:', baseUrl)
-        
-        console.log('[SocketStore][connect] Creating socket instance with options:', {
-          baseUrl,
+        console.log('[SocketStore][connect] Creating socket instance with options for URL:', baseUrl, {
           transports: [...SOCKET_CONFIG.TRANSPORTS],
           path: SOCKET_CONFIG.PATH,
           autoConnect: false,
@@ -71,11 +76,9 @@ export const createConnectionActions: ActionCreator = (set, get) => ({
         });
         
         // Create socket instance with explicit configuration
+        // Authentication (auth property) is removed as HttpOnly cookie is used.
+        // Query parameters for token are also removed.
         const newSocket = io(baseUrl, {
-          // Authentication
-          auth: {
-            token: accessToken,
-          },
           // Connection settings - create a new array to ensure it's mutable
           transports: [...SOCKET_CONFIG.TRANSPORTS],
           path: SOCKET_CONFIG.PATH,
@@ -88,14 +91,14 @@ export const createConnectionActions: ActionCreator = (set, get) => ({
           // Timeout settings
           timeout: SOCKET_CONFIG.TIMEOUT,
           // Security
-          withCredentials: true,
+          withCredentials: true, // This is crucial for sending HttpOnly cookies
           // Force new connection to avoid issues with reconnection
           forceNew: true,
           // Disable multiplexing to avoid potential issues
           multiplex: false,
-          // Add query parameters if needed
+          // Add query parameters if needed (but not token)
           query: {
-            token: accessToken,
+            // token: accessToken, // Removed
             client: 'web',
             version: SOCKET_CONFIG.CLIENT_VERSION
           }

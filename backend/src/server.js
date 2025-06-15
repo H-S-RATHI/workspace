@@ -6,6 +6,7 @@ const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+const cookieParser = require('cookie-parser'); // Import cookie-parser
 require('dotenv').config();
 
 const config = require('./config/database');
@@ -116,6 +117,7 @@ if (process.env.NODE_ENV === 'development') {
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(cookieParser()); // Use cookie-parser
 
 // Static files
 app.use('/uploads', express.static('uploads'));

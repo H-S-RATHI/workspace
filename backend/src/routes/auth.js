@@ -290,8 +290,8 @@ router.post('/verify-otp', [
     // Generate tokens
     const { accessToken, refreshToken } = generateTokens(user.userId);
 
-    // Store refresh token
-    await cache.set(`refresh_token:${user.userId}`, refreshToken, 30 * 24 * 60 * 60); // 30 days
+    // Store refresh token in cache (still useful for server-side validation if needed)
+    await cache.set(`refresh_token:${user.userId}`, refreshToken, parseInt(process.env.JWT_REFRESH_EXPIRES_IN_SECONDS, 10) || 30 * 24 * 60 * 60);
 
     // Clean up OTP data
     await cache.del(otpKey);
@@ -301,6 +301,29 @@ router.post('/verify-otp', [
       userId: user.userId, 
       username: user.username 
     });
+
+    // --- Set HttpOnly Cookies ---
+    const accessTokenExpires = new Date(Date.now() + (parseInt(process.env.JWT_EXPIRES_IN_SECONDS, 10) || 7 * 24 * 60 * 60) * 1000);
+    const refreshTokenExpires = new Date(Date.now() + (parseInt(process.env.JWT_REFRESH_EXPIRES_IN_SECONDS, 10) || 30 * 24 * 60 * 60) * 1000);
+
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict', // Or 'lax' if you have cross-domain requirements
+    };
+
+    res.cookie('accessToken', accessToken, {
+      ...cookieOptions,
+      expires: accessTokenExpires,
+      path: '/', // Available for all API routes
+    });
+
+    res.cookie('refreshToken', refreshToken, {
+      ...cookieOptions,
+      expires: refreshTokenExpires,
+      path: `/api/${process.env.API_VERSION || 'v1'}/auth`, // More specific path for refresh token
+    });
+    // --- End HttpOnly Cookies ---
 
     res.json({
       success: true,
@@ -315,10 +338,7 @@ router.post('/verify-otp', [
         twoFaEnabled: user.twoFaEnabled,
         isBusinessAccount: user.isBusinessAccount || false,
       },
-      tokens: {
-        accessToken,
-        refreshToken,
-      },
+      // Tokens are no longer sent in the response body
       isNewUser,
     });
 
@@ -371,15 +391,36 @@ router.post('/refresh-token', async (req, res) => {
     // Generate new tokens
     const { accessToken, refreshToken: newRefreshToken } = generateTokens(decoded.userId);
 
-    // Update stored refresh token
-    await cache.set(`refresh_token:${decoded.userId}`, newRefreshToken, 30 * 24 * 60 * 60);
+    // Update stored refresh token in cache
+    await cache.set(`refresh_token:${decoded.userId}`, newRefreshToken, parseInt(process.env.JWT_REFRESH_EXPIRES_IN_SECONDS, 10) || 30 * 24 * 60 * 60);
+
+    // --- Set HttpOnly Cookies for new tokens ---
+    const newAccessTokenExpires = new Date(Date.now() + (parseInt(process.env.JWT_EXPIRES_IN_SECONDS, 10) || 7 * 24 * 60 * 60) * 1000);
+    const newRefreshTokenExpires = new Date(Date.now() + (parseInt(process.env.JWT_REFRESH_EXPIRES_IN_SECONDS, 10) || 30 * 24 * 60 * 60) * 1000);
+
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+    };
+
+    res.cookie('accessToken', accessToken, {
+      ...cookieOptions,
+      expires: newAccessTokenExpires,
+      path: '/',
+    });
+
+    res.cookie('refreshToken', newRefreshToken, {
+      ...cookieOptions,
+      expires: newRefreshTokenExpires,
+      path: `/api/${process.env.API_VERSION || 'v1'}/auth`,
+    });
+    // --- End HttpOnly Cookies ---
 
     res.json({
       success: true,
-      tokens: {
-        accessToken,
-        refreshToken: newRefreshToken,
-      },
+      message: "Tokens refreshed successfully"
+      // Tokens are no longer sent in the response body
     });
 
   } catch (error) {
@@ -558,12 +599,26 @@ router.post('/logout', async (req, res) => {
       }
     }
 
-    // Clear any client-side tokens by setting expired cookies
-    res.cookie('accessToken', '', { expires: new Date(0), httpOnly: true, secure: process.env.NODE_ENV === 'production' });
-    res.cookie('refreshToken', '', { expires: new Date(0), httpOnly: true, secure: process.env.NODE_ENV === 'production' });
+    // --- Clear HttpOnly Cookies ---
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+    };
+    res.cookie('accessToken', '', {
+      ...cookieOptions,
+      path: '/',
+      expires: new Date(0), // Expire immediately
+    });
+    res.cookie('refreshToken', '', {
+      ...cookieOptions,
+      path: `/api/${process.env.API_VERSION || 'v1'}/auth`,
+      expires: new Date(0), // Expire immediately
+    });
+    // --- End Clear HttpOnly Cookies ---
 
-    // Clear Authorization header
-    res.setHeader('Clear-Site-Data', '"cookies", "storage"');
+    // Clear Authorization header (still good practice)
+    res.setHeader('Clear-Site-Data', '"cookies", "storage"'); // "storage" might clear localStorage if any other data is there
 
     res.json({
       success: true,
@@ -572,35 +627,77 @@ router.post('/logout', async (req, res) => {
 
   } catch (error) {
     logger.error('Logout error:', error);
-    // Even if there's an error, we still want to clear the tokens
-    res.cookie('accessToken', '', { expires: new Date(0), httpOnly: true, secure: process.env.NODE_ENV === 'production' });
-    res.cookie('refreshToken', '', { expires: new Date(0), httpOnly: true, secure: process.env.NODE_ENV === 'production' });
+    // Even if there's an error, we still want to try to clear the cookies
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+    };
+    res.cookie('accessToken', '', {
+      ...cookieOptions,
+      path: '/',
+      expires: new Date(0),
+    });
+    res.cookie('refreshToken', '', {
+      ...cookieOptions,
+      path: `/api/${process.env.API_VERSION || 'v1'}/auth`,
+      expires: new Date(0),
+    });
     
+    // It's better to send an error status if logout itself had an issue
+    // but for client, the main goal is local state is cleared.
+    // However, if the error is critical, server should respond accordingly.
+    // For now, maintaining previous behavior of always returning success on logout:
     res.json({
-      success: true,
-      message: 'Logged out successfully',
+      success: true, // Or false depending on how critical the error is
+      message: 'Logged out successfully (with potential server error during cleanup)',
     });
   }
 });
 
 // Get current user info
 router.get('/me', authenticateToken, async (req, res) => {
+  // This route now implicitly relies on authenticateToken to verify the cookie
   try {
-    const user = await db('users')
-      .where({ userId: req.user.userId })
-      .select('userId', 'username', 'fullName', 'email', 'phoneNumber', 'twoFaEnabled', 'createdAt')
+    // req.user is populated by authenticateToken if the accessToken cookie is valid
+    if (!req.user || !req.user.userId) {
+      // This case should ideally be caught by authenticateToken sending a 401
+      // if no valid token (cookie or header) is found.
+      return res.status(401).json({
+        success: false,
+        error: 'Unauthorized. No valid session found.',
+      });
+    }
+
+    // Fetch fresh user data, or rely on req.user if it's deemed sufficient
+    // For security and up-to-date info, fetching fresh is better.
+    const userFromDb = await db('users')
+      .where({ userId: req.user.userId, isDeleted: false }) // ensure not deleted
+      .select(
+        'userId',
+        'username',
+        'fullName',
+        'email',
+        'phoneNumber',
+        'profilePhotoUrl',
+        'role', // Ensure role is selected
+        'isBusinessAccount',
+        'twoFaEnabled',
+        'createdAt'
+      )
       .first();
 
-    if (!user) {
+    if (!userFromDb) {
+      // This could happen if user was deleted after token was issued but before this call
       return res.status(404).json({
         success: false,
-        error: 'User not found',
+        error: 'User not found or account is inactive.',
       });
     }
 
     res.json({
       success: true,
-      user,
+      user: userFromDb, // Send the fresh user data
     });
 
   } catch (error) {
